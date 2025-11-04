@@ -55,11 +55,11 @@
 \contentsline {subsection}{\numberline {4.2}Kiến trúc ứng dụng}{42}{subsection.4.2}%
 \contentsline {subsection}{\numberline {4.3}Kết nối Database}{42}{subsection.4.3}%
 \contentsline {subsection}{\numberline {4.4}Phân công và triển khai chức năng}{44}{subsection.4.4}%
-\contentsline {subsection}{\numberline {4.5}Chức năng 1: Quản lý Giảng viên (Võ Anh Khoa)}{45}{subsection.4.5}%
-\contentsline {subsection}{\numberline {4.6}Chức năng 2: Quản lý Khoa (Nguyễn Gia Bảo)}{48}{subsection.4.6}%
-\contentsline {subsection}{\numberline {4.7}Chức năng 3: Đăng ký và Quản lý điểm (Nguyễn Viết An Bình)}{51}{subsection.4.7}%
-\contentsline {subsection}{\numberline {4.8}Chức năng 4: Quản lý Sinh viên (Mã Nhật Phong)}{55}{subsection.4.8}%
-\contentsline {subsection}{\numberline {4.9}Chức năng 5: Quản lý Môn học (Nguyễn Hữu Hoàng Thông)}{59}{subsection.4.9}%
-\contentsline {subsection}{\numberline {4.10}Testing và Demo}{63}{subsection.4.10}%
-\contentsline {section}{KẾT LUẬN}{64}{section*.33}%
-\contentsline {section}{PHỤ LỤC}{66}{section*.34}%
+\contentsline {subsection}{\numberline {4.5}Chức năng 1: Quản lý Giảng viên}{45}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Chức năng 2: Quản lý Khoa}{48}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}Chức năng 3: Đăng ký và Quản lý điểm}{52}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}Chức năng 4: Quản lý Sinh viên}{57}{subsection.4.8}%
+\contentsline {subsection}{\numberline {4.9}Chức năng 5: Quản lý Môn học}{61}{subsection.4.9}%
+\contentsline {subsection}{\numberline {4.10}Testing và Demo}{66}{subsection.4.10}%
+\contentsline {section}{KẾT LUẬN}{67}{section*.32}%
+\contentsline {section}{PHỤ LỤC}{69}{section*.33}%
