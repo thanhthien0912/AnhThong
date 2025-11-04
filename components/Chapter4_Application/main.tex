@@ -104,26 +104,25 @@ public class DatabaseHelper
 	\resizebox{\textwidth}{!}{
 		\begin{tabular}{|l|l|p{7cm}|}
 			\hline
-			\textbf{Thành viên}    & \textbf{Chức năng}      & \textbf{Stored Proc/Function/Trigger sử dụng}                                                                     \\ \hline
-			Võ Anh Khoa            & Quản lý Giảng viên      & SP\_CAPNHAT\_CHUCVU\_GV, FN\_DEM\_GV\_THEO\_CHUCVU, TR\_NGAN\_CHAN\_XOA\_CHUCVU, SP\_THANG\_CHUC\_TRUONG\_KHOA    \\ \hline
-			Nguyễn Gia Bảo         & Quản lý Khoa            & sp\_ThemKhoa, fn\_DemKhoaCoSoDienThoai, trg\_KiemTraSoDienThoai, sp\_DuyetTungHeDaoTao                            \\ \hline
-			Nguyễn Viết An Bình    & Đăng ký và Quản lý điểm & sp\_DangKyHocPhan, trg\_TinhDiemTongKet, fn\_TinhDiemTrungBinh, Transaction đăng ký                               \\ \hline
-			Mã Nhật Phong          & Quản lý Sinh viên       & sp\_LayDanhSachSV\_TheoLop, fn\_DemSoSinhVien\_TheoLop, trg\_NganXoaLop\_KhiConSinhVien, sp\_ChuyenLopChoSinhVien \\ \hline
-			Nguyễn Hữu Hoàng Thông & Quản lý Môn học         & sp\_ThemMonHoc, sp\_XoaMonHoc, fn\_LayDanhSachMonTienQuyet, sp\_BaoCaoHocKy, fn\_KiemTraTienQuyet                 \\ \hline
+			\textbf{Thành viên}    & \textbf{Chức năng}      & \textbf{Stored Proc/Function/Trigger sử dụng}                                                                                                                                     \\ \hline
+			Võ Anh Khoa            & Quản lý Giảng viên      & SP\_CAPNHAT\_CHUCVU\_GV, FN\_DEM\_GV\_THEO\_CHUCVU, TR\_NGAN\_CHAN\_XOA\_CHUCVU, SP\_THANG\_CHUC\_TRUONG\_KHOA                                                                    \\ \hline
+			Nguyễn Gia Bảo         & Quản lý Khoa            & sp\_ThemKhoa, fn\_DemKhoaCoSoDienThoai, trg\_KiemTraSoDienThoai, sp\_DuyetTungHeDaoTao                                                                                            \\ \hline
+			Nguyễn Viết An Bình    & Đăng ký và Quản lý điểm & sp\_DangKyHocPhan, trg\_TinhDiemTongKet, fn\_TinhDiemTrungBinh, Transaction đăng ký                                                                                               \\ \hline
+			Mã Nhật Phong          & Quản lý Sinh viên       & sp\_LayDanhSachSV\_TheoLop, fn\_DemSoSinhVien\_TheoLop, trg\_NganXoaLop\_KhiConSinhVien, sp\_ChuyenLopChoSinhVien                                                                 \\ \hline
+			Nguyễn Hữu Hoàng Thông & Quản lý Môn học         & sp\_ThemMonHoc, sp\_XoaMonHoc, sp\_CapNhatMonHoc, fn\_LayDanhSachMonTienQuyet, trg\_NganXoaHocKy, sp\_BaoCaoHocKy, fn\_KiemTraTienQuyet, sp\_DangKyMonHoc, trg\_KiemTraNgayDangKy \\ \hline
 		\end{tabular}
 	}
 \end{table}
 
 
-\subsection{Chức năng 1: Quản lý Giảng viên (Võ Anh Khoa)}
+\subsection{Chức năng 1: Quản lý Giảng viên}
 
 \textbf{Mô tả chức năng:}\\
 Chức năng cho phép quản lý thông tin giảng viên, cập nhật chức vụ, thống kê giảng viên theo chức vụ. Sử dụng stored procedure \texttt{SP\_CAPNHAT\_CHUCVU\_GV},\newline function \texttt{FN\_DEM\_GV\_THEO\_CHUCVU} và trigger \texttt{TR\_NGAN\_CHAN\_XOA\_CHUCVU}.
 
-% [CẦN THÊM HÌNH: Giao diện màn hình Quản lý giảng viên]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.2: Giao diện màn hình Quản lý giảng viên]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.2.png}
 	\caption{Màn hình Quản lý giảng viên}
 	\label{fig:quan_ly_giang_vien}
 \end{figure}
@@ -200,23 +199,21 @@ public class GiangVienController : Controller
 }
 \end{lstlisting}
 
-% [CẦN THÊM HÌNH: Form cập nhật chức vụ giảng viên]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.3: Form cập nhật chức vụ giảng viên]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.3.png}
 	\caption{Form cập nhật chức vụ}
 	\label{fig:form_cap_nhat_chuc_vu}
 \end{figure}
 
-\subsection{Chức năng 2: Quản lý Khoa (Nguyễn Gia Bảo)}
+\subsection{Chức năng 2: Quản lý Khoa}
 
 \textbf{Mô tả chức năng:}\\
 Cho phép quản lý thông tin khoa, thêm khoa mới, thống kê khoa có số điện thoại, duyệt danh sách hệ đào tạo. Sử dụng stored procedure \texttt{sp\_ThemKhoa},\newline function \texttt{fn\_DemKhoaCoSoDienThoai}, trigger \texttt{trg\_KiemTraSoDienThoai} và \newline cursor \texttt{sp\_DuyetTungHeDaoTao}.
 
-% [CẦN THÊM HÌNH: Giao diện quản lý khoa]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.4: Giao diện quản lý khoa]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.4.png}
 	\caption{Màn hình quản lý khoa}
 	\label{fig:quan_ly_khoa}
 \end{figure}
@@ -328,15 +325,14 @@ public class KhoaController : Controller
 
 
 
-\subsection{Chức năng 3: Đăng ký và Quản lý điểm (Nguyễn Viết An Bình)}
+\subsection{Chức năng 3: Đăng ký và Quản lý điểm}
 
 \textbf{Mô tả chức năng:}\\
 Đăng ký học phần và quản lý điểm sinh viên với tự động tính điểm tổng kết thông qua trigger. Sử dụng stored procedure \texttt{sp\_DangKyHocPhan},\newline trigger \texttt{trg\_TinhDiemTongKet} và function \texttt{fn\_TinhDiemTrungBinh}.
 
-% [CẦN THÊM HÌNH: Giao diện nhập điểm]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.6: Giao diện nhập điểm cho sinh viên]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.5.png}
 	\caption{Màn hình nhập điểm}
 	\label{fig:nhap_diem}
 \end{figure}
@@ -472,23 +468,21 @@ public class DangKyDiemController : Controller
 }
 \end{lstlisting}
 
-% [CẦN THÊM HÌNH: Bảng điểm sinh viên]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.7: Bảng điểm chi tiết của sinh viên]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.6.png}
 	\caption{Bảng điểm sinh viên}
 	\label{fig:bang_diem}
 \end{figure}
 
-\subsection{Chức năng 4: Quản lý Sinh viên (Mã Nhật Phong)}
+\subsection{Chức năng 4: Quản lý Sinh viên}
 
 \textbf{Mô tả chức năng:}\\
 Quản lý thông tin sinh viên, hiển thị danh sách theo lớp, chuyển lớp cho sinh viên. Sử dụng stored procedure \texttt{sp\_LayDanhSachSV\_TheoLop}, \texttt{sp\_ChuyenLopChoSinhVien}, function \texttt{fn\_DemSoSinhVien\_TheoLop} và trigger \texttt{trg\_NganXoaLop\_KhiConSinhVien}.
 
-% [CẦN THÊM HÌNH: Giao diện quản lý sinh viên]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.8: Giao diện quản lý sinh viên]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.7.png}
 	\caption{Màn hình quản lý sinh viên}
 	\label{fig:quan_ly_sinh_vien_phong}
 \end{figure}
@@ -598,23 +592,21 @@ public class SinhVienController : Controller
 }
 \end{lstlisting}
 
-% [CẦN THÊM HÌNH: Danh sách sinh viên theo lớp]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.9: Danh sách sinh viên theo lớp]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.8.png}
 	\caption{Kết quả danh sách sinh viên}
 	\label{fig:danh_sach_sv_lop}
 \end{figure}
 
-\subsection{Chức năng 5: Quản lý Môn học (Nguyễn Hữu Hoàng Thông)}
+\subsection{Chức năng 5: Quản lý Môn học}
 
 \textbf{Mô tả chức năng:}\\
 Quản lý thông tin môn học, môn tiên quyết, báo cáo học kỳ. Sử dụng stored procedure \texttt{sp\_ThemMonHoc}, \texttt{sp\_XoaMonHoc}, \texttt{sp\_BaoCaoHocKy}, function \texttt{fn\_LayDanhSachMonTienQuyet}, \texttt{fn\_KiemTraTienQuyet} và trigger \texttt{trg\_NganXoaHocKy}.
 
-% [CẦN THÊM HÌNH: Giao diện quản lý môn học]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.10: Giao diện quản lý môn học]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.9.png}
 	\caption{Màn hình quản lý môn học}
 	\label{fig:quan_ly_mon_hoc}
 \end{figure}
@@ -754,7 +746,7 @@ public class MonHocController : Controller
 % [CẦN THÊM HÌNH: Báo cáo học kỳ]
 \begin{figure}[H]
 	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.11: Báo cáo sĩ số học kỳ]}}}
+	\includegraphics[width=0.9\textwidth]{images/mohinh/4.10.png}
 	\caption{Báo cáo học kỳ}
 	\label{fig:bao_cao_hoc_ky}
 \end{figure}
@@ -770,17 +762,6 @@ public class MonHocController : Controller
 	\item Test báo cáo thống kê với dữ liệu lớn
 \end{itemize}
 
-% [CẦN THÊM HÌNH: Kết quả test các chức năng]
-\begin{figure}[H]
-	\centering
-	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.12: Kết quả kiểm thử các chức năng]}}}
-	\caption{Kết quả kiểm thử}
-	\label{fig:test_results}
-\end{figure}
 
-\textbf{Video demo:}
-\begin{itemize}
-	\item Link video demo chức năng 1: [URL]
-	\item Link video demo chức năng 2: [URL]
-	\item Link video demo chức năng 3: [URL]
-\end{itemize}
+\textbf{Video demo:}\\
+Link demo ứng dụng: \url{https://drive.google.com/drive/folders/1PCYUt3RIsg0WdZMrs4_eikNIVjb12PCt?usp=sharing}
