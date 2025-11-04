@@ -1,0 +1,55 @@
+% Title page component for QLSV report
+\thispagestyle{empty}
+
+\begin{titlepage}
+	\begin{center}
+		%====================== KHUNG ĐÔI ======================
+		\begin{tikzpicture}[remember picture,overlay]
+			% Khung ngoài
+			\draw[line width=1pt]
+			($(current page.north west)+(1.2cm,-1.2cm)$) rectangle
+			($(current page.south east)+(-1.2cm,1.2cm)$);
+			% Khung trong
+			\draw[line width=0.35pt]
+			($(current page.north west)+(1.35cm,-1.35cm)$) rectangle
+			($(current page.south east)+(-1.35cm,1.35cm)$);
+		\end{tikzpicture}
+
+		%====================== HEADER ======================
+		\vspace*{1.0cm}
+		{\large BỘ CÔNG THƯƠNG\\
+			\textbf{TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG THÀNH PHỐ HCM}\\
+			KHOA CÔNG NGHỆ THÔNG TIN}\\[-2pt]
+		\makebox[5cm]{\rule{6cm}{0.2pt}}
+
+		%====================== LOGO ======================
+		\vspace{0.9cm}
+		\includegraphics[width=3.2cm]{images/logo_huit.png}\\[0.6cm]
+
+		%====================== TIÊU ĐỀ ======================
+		{\Large \textbf{GÕ VÀO TÊN ĐỀ TÀI}}\\[1.2cm]
+
+		{\large \textbf{BÁO CÁO ĐỒ ÁN MÔN HỌC}}\\[0.3cm]
+		{\normalsize \textbf{HỆ QUẢN TRỊ CƠ SỞ DỮ LIỆU}}\\[1.6cm]
+
+		%====================== THÔNG TIN SV/GV (căn trái) ======================
+		\begin{minipage}{0.85\textwidth}
+			\raggedright%
+			\textbf{SINH VIÊN THỰC HIỆN:}\\[-2pt]
+			1. 0123456, Nguyễn Văn A, Lớp 14DHTH2\\
+			2. \ldots\\
+			3. \ldots\\
+			4. \ldots\\
+			5. \ldots\\[6pt]
+			\textbf{GVHD:} \@\ldots\\
+		\end{minipage}
+
+		%====================== FOOTER ======================
+		\vfill
+		\textbf{TP. HỒ CHÍ MINH, tháng \dotfill\ năm 20\dotfill}
+	\end{center}
+\end{titlepage}
+
+\newpage
+\thispagestyle{empty}
+\mbox{} % trang trắng sau bìa (nếu cần)

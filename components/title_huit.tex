@@ -1,0 +1,92 @@
+% Trang bìa theo mẫu HUIT
+\begin{titlepage}
+    \thispagestyle{empty}
+    
+    % Tạo khung đôi bao quanh
+    \noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{%
+    \vspace*{-0.3cm}
+    \noindent\fbox{\parbox{\dimexpr\textwidth-4\fboxsep-4\fboxrule\relax}{%
+        
+        \vspace{1cm}
+        
+        \begin{center}
+            % ===== HEADER =====
+            {\fontsize{13}{16}\selectfont
+                \textbf{BỘ CÔNG THƯƠNG}\\[0.3cm]
+                \textbf{TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG THÀNH PHỐ HỒ CHÍ MINH}\\[0.3cm] 
+                \textbf{KHOA CÔNG NGHỆ THÔNG TIN}\\[0.3cm]
+                \textbf{--------------------------}
+            }
+            
+            \vspace{1.5cm}
+            
+            % ===== LOGO =====
+            % Uncomment và thay đổi đường dẫn nếu có logo
+            % \includegraphics[width=4cm]{images/logo_huit.png}
+            
+            % Tạm thời dùng logo text
+            \begin{tikzpicture}
+                \node[draw, minimum width=3.5cm, minimum height=3.5cm, rounded corners=5pt] (box) {};
+                \node at (box.center) {
+                    \begin{tabular}{c}
+                        \Large\textbf{HUIT}\\[0.2cm]
+                        \small Logo
+                    \end{tabular}
+                };
+            \end{tikzpicture}
+            
+            \vspace{2cm}
+            
+            % ===== TÊN ĐỀ TÀI =====
+            {\fontsize{16}{20}\selectfont
+                \textbf{HỆ THỐNG QUẢN LÝ SINH VIÊN}\\[0.3cm]
+                \textbf{(STUDENT MANAGEMENT SYSTEM)}
+            }
+            
+            \vspace{2cm}
+            
+            % ===== LOẠI BÁO CÁO =====
+            {\fontsize{15}{18}\selectfont
+                \textbf{BÁO CÁO ĐỒ ÁN MÔN HỌC}\\[0.5cm]
+                \textbf{HỆ QUẢN TRỊ CƠ SỞ DỮ LIỆU}
+            }
+            
+            \vspace{2.5cm}
+            
+        \end{center}
+        
+        % ===== THÔNG TIN SINH VIÊN VÀ GVHD =====
+        {\fontsize{13}{16}\selectfont
+            \noindent\textbf{SINH VIÊN THỰC HIỆN:}\\[0.3cm]
+            \begin{tabbing}
+                \hspace{1cm}\=1. \=0123456, \=Nguyễn Văn A, \=Lớp 14DHTH01\\[0.2cm]
+                \>2. \>0123457, \>Trần Thị B, \>Lớp 14DHTH01\\[0.2cm]
+                \>3. \>0123458, \>Lê Văn C, \>Lớp 14DHTH02\\[0.2cm]
+                \>4. \>0123459, \>Phạm Thị D, \>Lớp 14DHTH02\\[0.2cm]
+                \>5. \>0123460, \>Hoàng Văn E, \>Lớp 14DHTH03\\[0.4cm]
+            \end{tabbing}
+            
+            \noindent\textbf{GIẢNG VIÊN HƯỚNG DẪN:} ThS. Nguyễn Văn Hướng Dẫn
+        }
+        
+        \vspace{2cm}
+        
+        % ===== FOOTER =====
+        \begin{center}
+            {\fontsize{13}{16}\selectfont
+                \textbf{TP. HỒ CHÍ MINH, tháng 10 năm 2025}
+            }
+        \end{center}
+        
+        \vspace{0.5cm}
+        
+    }}}} % Đóng 2 khung
+\end{titlepage}
+
+% ===== HƯỚNG DẪN SỬ DỤNG =====
+% 1. Thay đổi tên đề tài ở dòng "HỆ THỐNG QUẢN LÝ SINH VIÊN"
+% 2. Cập nhật thông tin sinh viên (MSSV, Họ tên, Lớp)
+% 3. Cập nhật tên GVHD
+% 4. Cập nhật tháng năm ở cuối trang
+% 5. Nếu có logo, uncomment dòng \includegraphics và cung cấp đường dẫn đúng
+% 6. Để sử dụng trang bìa này, thay \input{components/title} bằng \input{components/title_huit} trong main.tex

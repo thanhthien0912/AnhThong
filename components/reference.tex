@@ -1,0 +1,130 @@
+\newpage
+\phantomsection
+\section*{KẾT LUẬN}
+\addcontentsline{toc}{section}{KẾT LUẬN}
+
+\textbf{Tổng kết}\\
+Qua quá trình thực hiện đồ án "Hệ thống Quản lý Sinh viên", nhóm đã hoàn thành thành công các mục tiêu đặt ra:
+
+\begin{enumerate}
+	\item \textbf{Xây dựng cơ sở dữ liệu hoàn chỉnh:} Thiết kế 10+ bảng dữ liệu với đầy đủ ràng buộc, khóa chính, khóa ngoại đảm bảo tính toàn vẹn dữ liệu
+
+	\item \textbf{Cài đặt các yêu cầu xử lý phức tạp:} Triển khai 5 Stored Procedures, 3 Functions, 3 Triggers, 2 Cursors và 2 Transactions để xử lý nghiệp vụ
+
+	\item \textbf{Quản trị hệ thống chuyên nghiệp:} Thiết lập hệ thống quản lý người dùng với 5 nhóm quyền, chiến lược backup/restore 3-2-1, bảo mật với TDE và Audit
+
+	\item \textbf{Phát triển ứng dụng web:} Xây dựng ứng dụng ASP.NET MVC với 5+ chức năng chính, giao diện responsive và tích hợp đầy đủ với database
+\end{enumerate}
+
+\textbf{Kết quả đạt được}\\
+\begin{itemize}
+	\item Hệ thống có khả năng quản lý hiệu quả thông tin của 150+ sinh viên, 30+ giảng viên
+	\item Xử lý 300+ đăng ký học phần mỗi học kỳ
+	\item Thời gian phản hồi trung bình < 1 giây cho hầu hết các thao tác
+	\item Hệ thống backup tự động đảm bảo RPO 1 giờ và RTO 4 giờ
+	\item Giao diện thân thiện, dễ sử dụng trên nhiều thiết bị
+\end{itemize}
+
+\textbf{Kinh nghiệm rút ra}\\
+\begin{enumerate}
+	\item \textbf{Về thiết kế database:} Việc chuẩn hóa dữ liệu và thiết lập ràng buộc ngay từ đầu giúp tránh nhiều lỗi trong quá trình phát triển
+
+	\item \textbf{Về lập trình T-SQL:} Stored procedures và functions giúp tối ưu hiệu suất và tái sử dụng code hiệu quả
+
+	\item \textbf{Về bảo mật:} Phân quyền chi tiết và encryption là yếu tố quan trọng để bảo vệ dữ liệu nhạy cảm
+
+	\item \textbf{Về phát triển ứng dụng:} Mô hình MVC giúp tổ chức code rõ ràng và dễ bảo trì
+\end{enumerate}
+
+\textbf{Hạn chế và hướng phát triển}\\
+
+\textbf{Hạn chế:}
+\begin{itemize}
+	\item Chưa có module quản lý tài chính học phí
+	\item Chưa tích hợp hệ thống gửi email/SMS thông báo tự động
+	\item Giao diện mobile app chưa được phát triển
+	\item Chưa có tính năng import/export dữ liệu hàng loạt từ Excel
+\end{itemize}
+
+\textbf{Hướng phát triển:}
+\begin{itemize}
+	\item Phát triển thêm module quản lý học phí và công nợ
+	\item Tích hợp API để kết nối với các hệ thống khác
+	\item Xây dựng mobile app cho sinh viên và phụ huynh
+	\item Áp dụng Machine Learning để dự đoán kết quả học tập
+	\item Triển khai hệ thống trên cloud (Azure/AWS) để tăng khả năng mở rộng
+\end{itemize}
+
+
+\newpage
+
+\phantomsection
+\section*{PHỤ LỤC}
+\addcontentsline{toc}{section}{PHỤ LỤC}
+
+\textbf{Phụ lục A: Script tạo database đầy đủ}\\
+Script SQL đầy đủ để tạo database, bảng, stored procedures, functions, triggers có thể được tải từ:
+\begin{itemize}
+	\item File: \texttt{QLSV.sql} trong thư mục gốc dự án
+	\item Repository: https://github.com/[your-repo]/QuanLySinhVien
+\end{itemize}
+
+\textbf{Phụ lục B: Hướng dẫn cài đặt}\\
+\begin{enumerate}
+	\item \textbf{Yêu cầu hệ thống:}
+	      \begin{itemize}
+		      \item Windows 10/11 hoặc Windows Server 2019+
+		      \item SQL Server 2019 hoặc mới hơn
+		      \item .NET Framework 4.8
+		      \item IIS 10.0+
+		      \item RAM: Tối thiểu 8GB
+		      \item Disk: Tối thiểu 20GB trống
+	      \end{itemize}
+
+	\item \textbf{Cài đặt database:}
+	      \begin{itemize}
+		      \item Chạy script \texttt{QLSV.sql} trong SSMS
+		      \item Cấu hình login và users theo hướng dẫn Chương 3
+		      \item Thiết lập backup jobs
+	      \end{itemize}
+
+	\item \textbf{Deploy ứng dụng:}
+	      \begin{itemize}
+		      \item Build solution trong Visual Studio
+		      \item Publish to IIS
+		      \item Cấu hình connection string trong Web.config
+		      \item Test các chức năng chính
+	      \end{itemize}
+\end{enumerate}
+
+\textbf{Phụ lục C: Danh sách các stored procedures và functions}\\
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{|l|l|p{6cm}|}
+		\hline
+		\textbf{Loại} & \textbf{Tên}                 & \textbf{Mô tả}                            \\
+		\hline
+		Procedure     & sp\_ThemSinhVien             & Thêm sinh viên mới với kiểm tra ràng buộc \\
+		Procedure     & sp\_DangKyHocPhan            & Đăng ký học phần cho sinh viên            \\
+		Procedure     & sp\_TinhDiemTongKet          & Tính điểm tổng kết và xếp loại            \\
+		Procedure     & sp\_ThongKeDiemTheoLop       & Thống kê điểm theo lớp                    \\
+		Procedure     & sp\_XetHocBong               & Xét học bổng tự động                      \\
+		\hline
+		Function      & fn\_TinhDiemTrungBinh        & Tính điểm trung bình tích lũy             \\
+		Function      & fn\_TongTinChiDaDangKy       & Tính tổng tín chỉ đã đăng ký              \\
+		Function      & fn\_KiemTraDieuKienTotNghiep & Kiểm tra điều kiện tốt nghiệp             \\
+		\hline
+		Trigger       & trg\_CapNhatSiSoLop          & Tự động cập nhật sĩ số lớp                \\
+		Trigger       & trg\_KiemTraDiemHopLe        & Kiểm tra và tính điểm tự động             \\
+		Trigger       & trg\_LogThayDoiSinhVien      & Ghi log thay đổi thông tin                \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\textbf{Phụ lục D: Mã nguồn quan trọng}\\
+Mã nguồn đầy đủ của dự án có thể được truy cập tại:
+\begin{itemize}
+	\item Thư mục: \texttt{C:\textbackslash Users\textbackslash thanh\textbackslash Downloads\textbackslash BaoCao\textbackslash QLSV\textbackslash QuanLySinhVien}
+	\item Cấu trúc thư mục đã được mô tả chi tiết trong Chương 4
+\end{itemize}

@@ -1,0 +1,602 @@
+\section{XÂY DỰNG CƠ SỞ DỮ LIỆU}
+
+\subsection{Giới thiệu}
+Chương này trình bày chi tiết về việc thiết kế và xây dựng cơ sở dữ liệu cho hệ thống Quản lý Sinh viên (QLSV\_DoAn\_2). Hệ thống được xây dựng trên SQL Server với 14 bảng chính và các bảng hỗ trợ, đảm bảo tính toàn vẹn, bảo mật và khả năng mở rộng cho hoạt động quản lý đào tạo tại trường đại học.
+
+\subsection{Lược đồ quan hệ thực thể (ERD)}
+
+\subsubsection{Tổng quan mô hình dữ liệu}
+Mô hình cơ sở dữ liệu được thiết kế theo mô hình quan hệ (Relational Model) với các nhóm thực thể chính:
+
+\begin{itemize}
+    \item \textbf{Nhóm quản lý tổ chức:} Khoa, Hệ đào tạo, Chức vụ, Lớp
+    \item \textbf{Nhóm quản lý con người:} Sinh viên, Giảng viên  
+    \item \textbf{Nhóm quản lý đào tạo:} Môn học, Học kỳ, Lớp học phần, Đăng ký học phần
+    \item \textbf{Nhóm quản lý hệ thống:} Account, LoginLog, LogoutLog, LoiHeThong
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/erd.png}
+    \caption{Sơ đồ quan hệ giữa các bảng trong cơ sở dữ liệu QLSV}
+    \label{fig:erd}
+\end{figure}
+
+\subsubsection{Phân tích các quan hệ chính}
+\begin{itemize}
+    \item \textbf{Quan hệ 1-nhiều (1-N):}
+    \begin{itemize}
+        \item Khoa (1) - GiangVien (N): Một khoa có nhiều giảng viên
+        \item Khoa (1) - Lop (N): Một khoa quản lý nhiều lớp
+        \item ChucVu (1) - GiangVien (N): Một chức vụ có thể gán cho nhiều giảng viên
+        \item HeDaoTao (1) - Lop (N): Một hệ đào tạo có nhiều lớp
+        \item Lop (1) - SinhVien (N): Một lớp có nhiều sinh viên
+        \item MonHoc (1) - LopHocPhan (N): Một môn học có thể mở nhiều lớp học phần
+        \item HocKy (1) - LopHocPhan (N): Một học kỳ có nhiều lớp học phần
+        \item GiangVien (1) - LopHocPhan (N): Một giảng viên dạy nhiều lớp học phần
+    \end{itemize}
+    \item \textbf{Quan hệ nhiều-nhiều (N-N):}
+    \begin{itemize}
+        \item SinhVien - LopHocPhan (thông qua DangKyHocPhan): Một sinh viên đăng ký nhiều lớp học phần, một lớp học phần có nhiều sinh viên
+        \item MonHoc - MonHoc (thông qua MonHoc\_TienQuyet): Quan hệ tiên quyết giữa các môn học
+    \end{itemize}
+\end{itemize}
+
+\subsection{Chi tiết các bảng dữ liệu}
+
+\subsubsection{Nhóm bảng quản lý tổ chức}
+
+\textbf{1. Bảng HeDaoTao}\\
+Lưu trữ thông tin các hệ đào tạo của trường.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng HeDaoTao}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaHeDT & NVARCHAR(10) & PRIMARY KEY & Mã hệ đào tạo \\
+        TenHeDT & NVARCHAR(100) & NOT NULL & Tên hệ đào tạo \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng HeDaoTao}]
+CREATE TABLE HeDaoTao (
+    MaHeDT NVARCHAR(10) PRIMARY KEY,
+    TenHeDT NVARCHAR(100) NOT NULL
+)
+\end{lstlisting}
+
+\textbf{Dữ liệu mẫu:}
+\begin{itemize}
+    \item CQ - Chính quy
+    \item CLC - Chất lượng cao
+    \item LT - Liên thông
+    \item TC - Tại chức
+\end{itemize}
+
+\textbf{2. Bảng Khoa}\\
+Quản lý thông tin các khoa trong trường.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng Khoa}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaKhoa & NVARCHAR(10) & PRIMARY KEY & Mã khoa \\
+        TenKhoa & NVARCHAR(100) & NOT NULL, UNIQUE & Tên khoa \\
+        SoDienThoai & VARCHAR(15) & - & Số điện thoại \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng Khoa}]
+CREATE TABLE Khoa (
+    MaKhoa NVARCHAR(10) PRIMARY KEY,
+    TenKhoa NVARCHAR(100) NOT NULL UNIQUE,
+    SoDienThoai VARCHAR(15)
+)
+\end{lstlisting}
+
+\textbf{Dữ liệu mẫu:}
+\begin{itemize}
+    \item CNTT - Công nghệ Thông tin
+    \item QTKD - Quản trị Kinh doanh
+    \item NN - Ngoại ngữ
+    \item DL - Du lịch \& Lữ hành
+    \item CK - Cơ khí
+\end{itemize}
+
+\textbf{3. Bảng ChucVu}\\
+Định nghĩa các chức vụ trong hệ thống.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng ChucVu}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaChucVu & NVARCHAR(10) & PRIMARY KEY & Mã chức vụ \\
+        TenChucVu & NVARCHAR(100) & NOT NULL & Tên chức vụ \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng ChucVu}]
+CREATE TABLE ChucVu (
+    MaChucVu NVARCHAR(10) PRIMARY KEY,
+    TenChucVu NVARCHAR(100) NOT NULL
+)
+\end{lstlisting}
+
+\textbf{4. Bảng Lop}\\
+Quản lý thông tin các lớp học.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng Lop}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaLop & NVARCHAR(10) & PRIMARY KEY & Mã lớp \\
+        TenLop & NVARCHAR(100) & NOT NULL & Tên lớp \\
+        SiSo & INT & DEFAULT 0 & Sĩ số lớp \\
+        MaKhoa & NVARCHAR(10) & FOREIGN KEY & Mã khoa \\
+        MaHeDT & NVARCHAR(10) & FOREIGN KEY & Mã hệ đào tạo \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng Lop}]
+CREATE TABLE Lop (
+    MaLop NVARCHAR(10) PRIMARY KEY,
+    TenLop NVARCHAR(100) NOT NULL,
+    SiSo INT DEFAULT 0,
+    MaKhoa NVARCHAR(10),
+    MaHeDT NVARCHAR(10),
+    CONSTRAINT FK_Lop_Khoa FOREIGN KEY (MaKhoa) REFERENCES Khoa(MaKhoa),
+    CONSTRAINT FK_Lop_HeDaoTao FOREIGN KEY (MaHeDT) REFERENCES HeDaoTao(MaHeDT)
+)
+\end{lstlisting}
+
+\subsubsection{Nhóm bảng quản lý con người}
+
+\textbf{5. Bảng GiangVien}\\
+Lưu trữ thông tin giảng viên.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng GiangVien}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaGV & NVARCHAR(10) & PRIMARY KEY & Mã giảng viên \\
+        HoTenGV & NVARCHAR(100) & NOT NULL & Họ tên giảng viên \\
+        NgaySinh & DATE & - & Ngày sinh \\
+        GioiTinh & NVARCHAR(5) & CHECK (IN ('Nam', 'Nữ')) & Giới tính \\
+        Email & VARCHAR(100) & NOT NULL, UNIQUE & Email \\
+        SoDT & VARCHAR(15) & UNIQUE & Số điện thoại \\
+        MaKhoa & NVARCHAR(10) & FOREIGN KEY & Mã khoa \\
+        MaChucVu & NVARCHAR(10) & FOREIGN KEY & Mã chức vụ \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng GiangVien}]
+CREATE TABLE GiangVien (
+    MaGV NVARCHAR(10) PRIMARY KEY,
+    HoTenGV NVARCHAR(100) NOT NULL,
+    NgaySinh DATE,
+    GioiTinh NVARCHAR(5) CHECK (GioiTinh IN (N'Nam', N'Nu')),
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    SoDT VARCHAR(15) UNIQUE,
+    MaKhoa NVARCHAR(10),
+    MaChucVu NVARCHAR(10),
+    CONSTRAINT FK_GiangVien_Khoa FOREIGN KEY (MaKhoa) REFERENCES Khoa(MaKhoa),
+    CONSTRAINT FK_GiangVien_ChucVu FOREIGN KEY (MaChucVu) REFERENCES ChucVu(MaChucVu)
+)
+\end{lstlisting}
+
+\textbf{6. Bảng SinhVien}\\
+Lưu trữ thông tin sinh viên.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng SinhVien}
+    \small
+    \begin{tabular}{|l|l|l|p{3cm}|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaSV & NVARCHAR(10) & PRIMARY KEY & Mã sinh viên \\
+        HoTenSV & NVARCHAR(100) & NOT NULL & Họ tên sinh viên \\
+        NgaySinh & DATE & - & Ngày sinh \\
+        GioiTinh & NVARCHAR(5) & CHECK (IN ('Nam', 'Nữ')) & Giới tính \\
+        DiaChi & NVARCHAR(255) & - & Địa chỉ \\
+        Email & VARCHAR(100) & NOT NULL, UNIQUE & Email \\
+        SoDT & VARCHAR(15) & UNIQUE & Số điện thoại \\
+        MaLop & NVARCHAR(10) & FOREIGN KEY & Mã lớp \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng SinhVien}]
+CREATE TABLE SinhVien (
+    MaSV NVARCHAR(10) PRIMARY KEY,
+    HoTenSV NVARCHAR(100) NOT NULL,
+    NgaySinh DATE,
+    GioiTinh NVARCHAR(5) CHECK (GioiTinh IN (N'Nam', N'Nu')),
+    DiaChi NVARCHAR(255),
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    SoDT VARCHAR(15) UNIQUE,
+    MaLop NVARCHAR(10),
+    CONSTRAINT FK_SinhVien_Lop FOREIGN KEY (MaLop) REFERENCES Lop(MaLop)
+)
+\end{lstlisting}
+
+\subsubsection{Nhóm bảng quản lý đào tạo}
+
+\textbf{7. Bảng MonHoc}\\
+Định nghĩa các môn học trong chương trình đào tạo.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng MonHoc}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaMH & NVARCHAR(10) & PRIMARY KEY & Mã môn học \\
+        TenMH & NVARCHAR(100) & NOT NULL & Tên môn học \\
+        SoTinChi & INT & NOT NULL, CHECK (> 0) & Số tín chỉ \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng MonHoc}]
+CREATE TABLE MonHoc (
+    MaMH NVARCHAR(10) PRIMARY KEY,
+    TenMH NVARCHAR(100) NOT NULL,
+    SoTinChi INT NOT NULL CHECK (SoTinChi > 0)
+)
+\end{lstlisting}
+
+\textbf{Dữ liệu mẫu:}
+\begin{itemize}
+    \item CSDL - Cơ sở dữ liệu (3 tín chỉ)
+    \item HDT - Hướng đối tượng (3 tín chỉ)
+    \item LTW - Lập trình Web (3 tín chỉ)
+    \item MMT - Mạng máy tính (3 tín chỉ)
+\end{itemize}
+
+\textbf{8. Bảng HocKy}\\
+Quản lý thông tin học kỳ.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng HocKy}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaHK & NVARCHAR(10) & PRIMARY KEY & Mã học kỳ \\
+        TenHK & NVARCHAR(50) & NOT NULL & Tên học kỳ \\
+        NamHoc & VARCHAR(20) & NOT NULL & Năm học \\
+        NgayBatDau & DATE & - & Ngày bắt đầu \\
+        NgayKetThuc & DATE & CHECK (> NgayBatDau) & Ngày kết thúc \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng HocKy}]
+CREATE TABLE HocKy (
+    MaHK NVARCHAR(10) PRIMARY KEY,
+    TenHK NVARCHAR(50) NOT NULL,
+    NamHoc VARCHAR(20) NOT NULL,
+    NgayBatDau DATE,
+    NgayKetThuc DATE,
+    UNIQUE(TenHK, NamHoc),
+    CONSTRAINT CHK_HocKy_NgayThang CHECK (NgayKetThuc > NgayBatDau)
+)
+\end{lstlisting}
+
+\textbf{9. Bảng LopHocPhan}\\
+Liên kết môn học, học kỳ và giảng viên để tạo lớp học phần cụ thể.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng LopHocPhan}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaLHP & NVARCHAR(10) & PRIMARY KEY & Mã lớp học phần \\
+        PhongHoc & NVARCHAR(50) & - & Phòng học \\
+        SoLuongToiDa & INT & DEFAULT 40 & Số lượng tối đa \\
+        MaMH & NVARCHAR(10) & FOREIGN KEY & Mã môn học \\
+        MaHK & NVARCHAR(10) & FOREIGN KEY & Mã học kỳ \\
+        MaGV & NVARCHAR(10) & FOREIGN KEY & Mã giảng viên \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng LopHocPhan}]
+CREATE TABLE LopHocPhan (
+    MaLHP NVARCHAR(10) PRIMARY KEY,
+    PhongHoc NVARCHAR(50),
+    SoLuongToiDa INT DEFAULT 40,
+    MaMH NVARCHAR(10),
+    MaHK NVARCHAR(10),
+    MaGV NVARCHAR(10),
+    CONSTRAINT FK_LopHocPhan_MonHoc FOREIGN KEY (MaMH) REFERENCES MonHoc(MaMH),
+    CONSTRAINT FK_LopHocPhan_HocKy FOREIGN KEY (MaHK) REFERENCES HocKy(MaHK),
+    CONSTRAINT FK_LopHocPhan_GiangVien FOREIGN KEY (MaGV) REFERENCES GiangVien(MaGV)
+)
+\end{lstlisting}
+
+\textbf{10. Bảng DangKyHocPhan}\\
+Ghi nhận việc đăng ký học phần của sinh viên và điểm số.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng DangKyHocPhan}
+    \small
+    \begin{tabular}{|l|l|l|p{3cm}|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaSV & NVARCHAR(10) & PRIMARY KEY (composite) & Mã sinh viên \\
+        MaLHP & NVARCHAR(10) & PRIMARY KEY (composite) & Mã lớp học phần \\
+        NgayDangKy & DATETIME & DEFAULT GETDATE() & Ngày đăng ký \\
+        DiemChuyenCan & FLOAT & CHECK (0-10) & Điểm chuyên cần \\
+        DiemGiuaKy & FLOAT & CHECK (0-10) & Điểm giữa kỳ \\
+        DiemCuoiKy & FLOAT & CHECK (0-10) & Điểm cuối kỳ \\
+        DiemTongKet & FLOAT & - & Điểm tổng kết \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng DangKyHocPhan}]
+CREATE TABLE DangKyHocPhan (
+    MaSV NVARCHAR(10),
+    MaLHP NVARCHAR(10),
+    NgayDangKy DATETIME DEFAULT GETDATE(),
+    DiemChuyenCan FLOAT CHECK (DiemChuyenCan >= 0 AND DiemChuyenCan <= 10),
+    DiemGiuaKy FLOAT CHECK (DiemGiuaKy >= 0 AND DiemGiuaKy <= 10),
+    DiemCuoiKy FLOAT CHECK (DiemCuoiKy >= 0 AND DiemCuoiKy <= 10),
+    DiemTongKet FLOAT,
+    PRIMARY KEY (MaSV, MaLHP),
+    CONSTRAINT FK_DangKyHocPhan_SinhVien FOREIGN KEY (MaSV) REFERENCES SinhVien(MaSV),
+    CONSTRAINT FK_DangKyHocPhan_LopHocPhan FOREIGN KEY (MaLHP) REFERENCES LopHocPhan(MaLHP)
+)
+\end{lstlisting}
+
+\textbf{11. Bảng MonHoc\_TienQuyet}\\
+Xác định quan hệ tiên quyết giữa các môn học.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng MonHoc\_TienQuyet}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaMH\_Chinh & NVARCHAR(10) & PRIMARY KEY (composite) & Mã môn học chính \\
+        MaMH\_TienQuyet & NVARCHAR(10) & PRIMARY KEY (composite) & Mã môn tiên quyết \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng MonHoc\_TienQuyet}]
+CREATE TABLE MonHoc_TienQuyet (
+    MaMH_Chinh NVARCHAR(10),
+    MaMH_TienQuyet NVARCHAR(10),
+    PRIMARY KEY (MaMH_Chinh, MaMH_TienQuyet),
+    CONSTRAINT FK_TienQuyet_MonHocChinh FOREIGN KEY (MaMH_Chinh) REFERENCES MonHoc(MaMH),
+    CONSTRAINT FK_TienQuyet_MonHocTQ FOREIGN KEY (MaMH_TienQuyet) REFERENCES MonHoc(MaMH)
+)
+\end{lstlisting}
+
+\subsubsection{Nhóm bảng quản lý hệ thống}
+
+\textbf{12. Bảng Account}\\
+Quản lý tài khoản người dùng hệ thống.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng Account}
+    \small
+    \begin{tabular}{|l|l|l|p{3cm}|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        MaTaiKhoan & NVARCHAR(20) & PRIMARY KEY & Mã tài khoản \\
+        TenDangNhap & NVARCHAR(50) & NOT NULL, UNIQUE & Tên đăng nhập \\
+        MatKhau & NVARCHAR(MAX) & NOT NULL & Mật khẩu mã hóa \\
+        Email & VARCHAR(100) & NOT NULL, UNIQUE & Email \\
+        LoaiTaiKhoan & NVARCHAR(20) & CHECK & Admin/Lecturer/Student \\
+        TrangThai & BIT & DEFAULT 1 & Trạng thái hoạt động \\
+        NgayTao & DATETIME & DEFAULT GETDATE() & Ngày tạo \\
+        NgayCapNhat & DATETIME & - & Ngày cập nhật \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng Account}]
+CREATE TABLE Account (
+    MaTaiKhoan NVARCHAR(20) PRIMARY KEY,
+    TenDangNhap NVARCHAR(50) NOT NULL UNIQUE,
+    MatKhau NVARCHAR(MAX) NOT NULL,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    LoaiTaiKhoan NVARCHAR(20) CHECK (LoaiTaiKhoan IN ('Admin', 'Lecturer', 'Student')),
+    TrangThai BIT DEFAULT 1,
+    NgayTao DATETIME DEFAULT GETDATE(),
+    NgayCapNhat DATETIME,
+    CONSTRAINT CHK_Email CHECK (Email LIKE '%@%')
+)
+\end{lstlisting}
+
+\textbf{13. Bảng LoginLog}\\
+Ghi nhận lịch sử đăng nhập.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng LoginLog}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        ID & INT IDENTITY & PRIMARY KEY & ID tự động tăng \\
+        TenDangNhap & NVARCHAR(50) & FOREIGN KEY & Tên đăng nhập \\
+        NgayGio & DATETIME & DEFAULT GETDATE() & Thời gian đăng nhập \\
+        ThanhCong & BIT & - & Trạng thái đăng nhập \\
+        DiaChiIP & VARCHAR(20) & - & Địa chỉ IP \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng LoginLog}]
+CREATE TABLE LoginLog (
+    ID INT IDENTITY PRIMARY KEY,
+    TenDangNhap NVARCHAR(50),
+    NgayGio DATETIME DEFAULT GETDATE(),
+    ThanhCong BIT,
+    DiaChiIP VARCHAR(20),
+    CONSTRAINT FK_LoginLog_Account FOREIGN KEY (TenDangNhap) REFERENCES Account(TenDangNhap)
+)
+\end{lstlisting}
+
+\textbf{14. Bảng LoiHeThong}\\
+Lưu trữ các lỗi phát sinh trong hệ thống.
+
+\begin{table}[H]
+    \centering
+    \caption{Cấu trúc bảng LoiHeThong}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\
+        \hline
+        ID & INT IDENTITY & PRIMARY KEY & ID tự động tăng \\
+        NoiDung & NVARCHAR(255) & - & Nội dung lỗi \\
+        ThoiGian & DATETIME & DEFAULT GETDATE() & Thời gian xảy ra \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=sql, caption={Script tạo bảng LoiHeThong}]
+CREATE TABLE LoiHeThong (
+    ID INT IDENTITY PRIMARY KEY,
+    NoiDung NVARCHAR(255),
+    ThoiGian DATETIME DEFAULT GETDATE()
+)
+\end{lstlisting}
+
+\subsection{Tính chuẩn hóa cơ sở dữ liệu}
+
+\subsubsection{Chuẩn hóa 1NF (First Normal Form)}
+Tất cả các bảng trong hệ thống đều đạt chuẩn 1NF:
+\begin{itemize}
+    \item Mỗi cột chỉ chứa giá trị nguyên tử (atomic value)
+    \item Không có nhóm lặp lại (repeating groups)
+    \item Mỗi bảng có khóa chính xác định duy nhất từng bản ghi
+\end{itemize}
+
+\subsubsection{Chuẩn hóa 2NF (Second Normal Form)}
+Các bảng đạt chuẩn 2NF:
+\begin{itemize}
+    \item Đã thỏa mãn 1NF
+    \item Không có phụ thuộc hàm một phần (partial dependency)
+    \item Mọi thuộc tính không khóa đều phụ thuộc đầy đủ vào khóa chính
+\end{itemize}
+
+Ví dụ: Bảng DangKyHocPhan có khóa chính kết hợp (MaSV, MaLHP), các thuộc tính điểm phụ thuộc vào cả hai khóa này.
+
+\subsubsection{Chuẩn hóa 3NF (Third Normal Form)}
+Hệ thống đạt chuẩn 3NF:
+\begin{itemize}
+    \item Đã thỏa mãn 2NF
+    \item Không có phụ thuộc bắc cầu (transitive dependency)
+    \item Mọi thuộc tính không khóa chỉ phụ thuộc trực tiếp vào khóa chính
+\end{itemize}
+
+Ví dụ: Thông tin khoa được tách riêng thành bảng Khoa, không lưu trực tiếp trong bảng SinhVien hay GiangVien.
+
+\subsection{Ràng buộc toàn vẹn dữ liệu}
+
+\subsubsection{Ràng buộc khóa chính (Primary Key)}
+\begin{itemize}
+    \item Đảm bảo tính duy nhất cho mỗi bản ghi
+    \item Không cho phép giá trị NULL
+    \item Ví dụ: MaSV trong bảng SinhVien, MaGV trong bảng GiangVien
+\end{itemize}
+
+\subsubsection{Ràng buộc khóa ngoại (Foreign Key)}
+\begin{itemize}
+    \item Đảm bảo tính toàn vẹn tham chiếu giữa các bảng
+    \item Ngăn chặn xóa dữ liệu cha khi còn dữ liệu con
+    \item Ví dụ: MaLop trong SinhVien tham chiếu đến Lop, MaKhoa trong GiangVien tham chiếu đến Khoa
+\end{itemize}
+
+\subsubsection{Ràng buộc kiểm tra (Check Constraint)}
+\begin{itemize}
+    \item Giới hạn miền giá trị của thuộc tính
+    \item Ví dụ:
+    \begin{itemize}
+        \item GioiTinh IN ('Nam', 'Nữ')
+        \item SoTinChi > 0
+        \item DiemChuyenCan, DiemGiuaKy, DiemCuoiKy BETWEEN 0 AND 10
+        \item NgayKetThuc > NgayBatDau trong bảng HocKy
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Ràng buộc duy nhất (Unique Constraint)}
+\begin{itemize}
+    \item Đảm bảo không có giá trị trùng lặp
+    \item Cho phép một giá trị NULL
+    \item Ví dụ: Email, SoDT trong bảng SinhVien và GiangVien
+\end{itemize}
+
+\subsubsection{Ràng buộc giá trị mặc định (Default Constraint)}
+\begin{itemize}
+    \item Tự động gán giá trị khi không được cung cấp
+    \item Ví dụ:
+    \begin{itemize}
+        \item SiSo = 0 trong bảng Lop
+        \item SoLuongToiDa = 40 trong bảng LopHocPhan
+        \item NgayDangKy = GETDATE() trong bảng DangKyHocPhan
+        \item TrangThai = 1 trong bảng Account
+    \end{itemize}
+\end{itemize}
+
+\subsection{Tối ưu hóa cơ sở dữ liệu}
+
+\subsubsection{Chiến lược đánh chỉ mục (Index)}
+\begin{itemize}
+    \item \textbf{Clustered Index:} Tự động tạo trên khóa chính của mỗi bảng
+    \item \textbf{Non-Clustered Index:} Tạo trên các cột thường xuyên được tìm kiếm:
+    \begin{itemize}
+        \item Email trong bảng SinhVien, GiangVien
+        \item MaKhoa trong bảng Lop
+        \item MaMH, MaHK trong bảng LopHocPhan
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Phân vùng dữ liệu (Partitioning)}
+\begin{itemize}
+    \item Phân vùng bảng DangKyHocPhan theo học kỳ để tăng hiệu suất truy vấn
+    \item Phân vùng bảng LoginLog theo tháng để quản lý log hiệu quả
+\end{itemize}
+
+\subsubsection{Chiến lược sao lưu (Backup Strategy)}
+\begin{itemize}
+    \item \textbf{Full Backup:} Hàng tuần vào cuối tuần
+    \item \textbf{Differential Backup:} Hàng ngày vào cuối ngày
+    \item \textbf{Transaction Log Backup:} Mỗi 4 giờ trong giờ làm việc
+\end{itemize}

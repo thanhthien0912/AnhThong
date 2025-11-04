@@ -1,0 +1,411 @@
+\newpage
+\section{QUẢN TRỊ HỆ THỐNG}
+
+\subsection{Giới thiệu}
+Chương này trình bày các khía cạnh quan trọng trong quản trị hệ thống cơ sở dữ liệu SQL Server cho hệ thống QLSV\_DoAn\_2, bao gồm: quản lý người dùng, phân quyền bảo mật, và chiến lược sao lưu/phục hồi dữ liệu. Hệ thống được thiết kế với các bảng chính: HeDaoTao, Khoa, ChucVu, GiangVien, Lop, SinhVien, MonHoc, HocKy, LopHocPhan, DangKyHocPhan, MonHoc\_TienQuyet, Account, LoginLog, và LogoutLog.
+
+\subsection{Quản trị người dùng và phân quyền}
+
+\textbf{Cơ chế xác thực}\\
+Hệ thống sử dụng \textbf{Mixed Mode Authentication} kết hợp cả hai phương thức:
+\begin{itemize}
+	\item \textbf{Windows Authentication:} Cho các quản trị viên hệ thống và nhân viên nội bộ
+	\item \textbf{SQL Server Authentication:} Cho ứng dụng web và người dùng từ xa
+\end{itemize}
+
+\textbf{Lý do lựa chọn Mixed Mode:}
+\begin{enumerate}
+	\item Linh hoạt trong việc quản lý người dùng từ nhiều nguồn khác nhau
+	\item Ứng dụng web có thể kết nối từ các máy chủ không thuộc domain
+	\item Dễ dàng quản lý và cấp quyền cho từng nhóm người dùng
+	\item Hỗ trợ cả môi trường phát triển và production
+\end{enumerate}
+
+\textbf{Tạo Login và User}\\
+\textbf{Login} là tài khoản để xác thực ở cấp SQL Server instance, còn \textbf{User} là tài khoản được map từ Login để truy cập database cụ thể.
+
+\begin{lstlisting}[style=sql, caption={Tạo Login cho các nhóm người dùng}]
+-- 1. Tao Login cho sinh vien
+CREATE LOGIN sinhvien
+WITH PASSWORD = 'sinhvien@123', 
+     DEFAULT_DATABASE = QLSV_DoAn_2;
+
+-- 2. Tao Login cho giang vien
+CREATE LOGIN giangvien
+WITH PASSWORD = 'giangvien@123', 
+     DEFAULT_DATABASE = QLSV_DoAn_2;
+
+-- 3. Tao Login cho quan tri (su dung cho Account table)
+-- Vi du: admin, baotv, annv da duoc them vao bang Account
+-- Mat khau duoc ma hoa SHA256
+GO
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql, caption={Tạo User trong database}]
+USE QLSV_DoAn_2;
+GO
+
+-- Tao User cho sinh vien
+CREATE USER user_sinhvien
+FOR LOGIN sinhvien;
+
+-- Tao User cho giang vien
+CREATE USER user_giangvien
+FOR LOGIN giangvien;
+
+GO
+\end{lstlisting}
+
+\textbf{Tạo Role và phân quyền}\\
+Database Roles giúp nhóm các quyền lại và dễ dàng quản lý phân quyền cho nhiều user.
+
+\begin{lstlisting}[style=sql, caption={Tạo các Role trong database}]
+USE QLSV_DoAn_2;
+GO
+
+-- 1. Tao nhom quyen cho sinh vien
+CREATE ROLE role_sinhvien;
+
+-- 2. Tao nhom quyen cho giang vien
+CREATE ROLE role_giangvien;
+
+GO
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql, caption={Cấp quyền cho các Role}]
+-- 1. Sinh vien chi duoc xem du lieu
+GRANT SELECT ON dbo.SinhVien TO role_sinhvien;
+GRANT SELECT ON dbo.Lop TO role_sinhvien;
+GRANT SELECT ON dbo.MonHoc TO role_sinhvien;
+GRANT SELECT ON dbo.HocKy TO role_sinhvien;
+GRANT SELECT ON dbo.LopHocPhan TO role_sinhvien;
+GRANT SELECT ON dbo.DangKyHocPhan TO role_sinhvien;
+
+-- Quyen thuc thi cac function lien quan
+GRANT EXECUTE ON fn_TinhDiemTrungBinh TO role_sinhvien;
+GRANT EXECUTE ON fn_KiemTraTienQuyet TO role_sinhvien;
+
+-- 2. Giang vien duoc xem va cap nhat du lieu
+GRANT SELECT, INSERT, UPDATE, DELETE 
+ON dbo.GiangVien 
+TO role_giangvien;
+
+GRANT SELECT, INSERT, UPDATE 
+ON dbo.DangKyHocPhan 
+TO role_giangvien;
+
+GRANT SELECT ON dbo.SinhVien TO role_giangvien;
+GRANT SELECT ON dbo.Lop TO role_giangvien;
+GRANT SELECT ON dbo.MonHoc TO role_giangvien;
+GRANT SELECT ON dbo.LopHocPhan TO role_giangvien;
+
+-- Quyen thuc thi stored procedures
+GRANT EXECUTE ON sp_DangKyHocPhan TO role_giangvien;
+GRANT EXECUTE ON sp_CapNhat_ChucVu_GV TO role_giangvien;
+GRANT EXECUTE ON sp_ThemMonHoc TO role_giangvien;
+
+-- 3. Thu hoi quyen DELETE khoi giang vien
+REVOKE DELETE 
+ON dbo.GiangVien
+FROM role_giangvien;
+
+GO
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql, caption={Gán User vào Role}]
+-- Them user vao role
+ALTER ROLE role_sinhvien ADD MEMBER user_sinhvien;
+ALTER ROLE role_giangvien ADD MEMBER user_giangvien;
+
+-- Kiem tra quyen cua nguoi dung
+EXEC sp_helprolemember 'role_sinhvien';
+EXEC sp_helprolemember 'role_giangvien';
+GO
+\end{lstlisting}
+
+\textbf{Quản lý tài khoản và bảo mật}\\
+Hệ thống sử dụng bảng \textbf{Account} để quản lý tài khoản người dùng với mật khẩu được mã hóa SHA256.
+
+\begin{lstlisting}[style=sql, caption={Tạo bảng quản lý tài khoản}]
+-- Tao bang Account
+CREATE TABLE Account (
+    MaTaiKhoan NVARCHAR(20) PRIMARY KEY,
+    TenDangNhap NVARCHAR(50) NOT NULL UNIQUE,
+    MatKhau NVARCHAR(MAX) NOT NULL, -- Ma hoa SHA256
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    LoaiTaiKhoan NVARCHAR(20) 
+        CHECK (LoaiTaiKhoan IN ('Admin', 'Lecturer', 'Student')),
+    TrangThai BIT DEFAULT 1,
+    NgayTao DATETIME DEFAULT GETDATE()
+);
+
+-- Tao bang LoginLog de ghi nhat ky dang nhap
+CREATE TABLE LoginLog (
+    ID INT IDENTITY PRIMARY KEY,
+    TenDangNhap NVARCHAR(50),
+    NgayGio DATETIME DEFAULT GETDATE(),
+    ThanhCong BIT,
+    DiaChiIP VARCHAR(20)
+);
+
+-- Trigger kiem tra mat khau phai duoc ma hoa
+CREATE TRIGGER trg_KiemTraMatKhau_Account
+ON Account
+FOR INSERT, UPDATE
+AS
+BEGIN
+    IF EXISTS (
+        SELECT * FROM inserted
+        WHERE LEN(MatKhau) < 40 -- SHA256 toi thieu 40 ky tu
+    )
+    BEGIN
+        RAISERROR(N'Loi: Mat khau phai duoc ma hoa!', 16, 1);
+        ROLLBACK TRANSACTION;
+    END
+END
+GO
+\end{lstlisting}
+
+\subsection{Sao lưu và phục hồi dữ liệu}
+
+\textbf{Chiến lược sao lưu}\\
+Hệ thống áp dụng chiến lược sao lưu 3-2-1:
+\begin{itemize}
+	\item \textbf{3 bản sao:} Dữ liệu gốc + 2 bản backup
+	\item \textbf{2 phương tiện khác nhau:} Ổ cứng local và cloud storage
+	\item \textbf{1 bản offsite:} Lưu trữ từ xa để phòng thảm họa
+\end{itemize}
+
+\begin{table}[H]
+	\centering
+	\caption{Lịch trình sao lưu}
+	\begin{tabular}{|l|l|l|l|}
+		\hline
+		\textbf{Loại backup} & \textbf{Tần suất} & \textbf{Thời gian}     & \textbf{Lưu trữ} \\
+		\hline
+		Full Backup          & Hàng tuần         & Chủ nhật 00:00         & 4 tuần           \\
+		Differential Backup  & Hàng ngày         & 00:00                  & 7 ngày           \\
+		Transaction Log      & 4 giờ/lần         & 00:00, 04:00, 08:00... & 3 ngày           \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\textbf{Script sao lưu thủ công}\\
+
+\begin{lstlisting}[style=sql, caption={Script Full Backup}]
+-- Sao luu toan bo database
+BACKUP DATABASE QLSV_DoAn_2
+TO DISK = 'D:\Do an HQTCSDL.bak'
+WITH INIT,        
+     NAME = 'Full Backup QLSV_DoAn',
+     SKIP,
+     FORMAT,
+     STATS = 10;
+GO
+
+-- Verify backup
+RESTORE VERIFYONLY 
+FROM DISK = 'D:\Do an HQTCSDL.bak';
+GO
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql, caption={Script Differential Backup}]
+-- Sao luu khac biet (chi sao luu phan thay doi)
+BACKUP DATABASE QLSV_DoAn_2
+TO DISK = 'D:\Do an HQTCSDL_Diff_' 
+          + CONVERT(VARCHAR(8), GETDATE(), 112) + '.bak'
+WITH DIFFERENTIAL,
+     NAME = 'Sao luu khac biet QLSV_DoAn',
+     STATS = 10;
+GO
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql, caption={Script Transaction Log Backup}]
+-- Thiet lap recovery mode
+ALTER DATABASE QLSV_DoAn_2
+SET RECOVERY FULL;
+GO
+
+-- Sao luu nhat ky giao dich
+BACKUP LOG QLSV_DoAn_2
+TO DISK = 'D:\QLSV_DoAn_Log_' 
+          + CONVERT(VARCHAR(8), GETDATE(), 112) + '.trn'
+WITH INIT,
+     NAME = 'Sao luu nhat ky giao dich QLSV_DoAn';
+GO
+\end{lstlisting}
+
+\textbf{Script sao lưu tự động}\\
+
+\begin{lstlisting}[style=sql, caption={Script tự động sao lưu với ngày tháng}]
+-- Script sao luu tu dong voi timestamp
+DECLARE @BackupFile NVARCHAR(255)
+SET @BackupFile = 'D:\QLSV_DoAn_' 
+    + CONVERT(VARCHAR(8), GETDATE(), 112) + '.bak'
+
+BACKUP DATABASE [QLSV_DoAn_2]
+TO DISK = @BackupFile
+WITH INIT, STATS = 10;
+GO
+
+-- Script kiem tra backup history
+SELECT 
+    database_name,
+    backup_start_date,
+    backup_finish_date, 
+    type,
+    backup_size/1024/1024 AS backup_size_MB
+FROM msdb.dbo.backupset
+WHERE database_name = 'QLSV_DoAn_2'
+ORDER BY backup_start_date DESC;
+\end{lstlisting}
+
+\textbf{Phục hồi dữ liệu}\\
+
+\begin{lstlisting}[style=sql, caption={Script phục hồi database}]
+-- 1. Phuc hoi tu Full Backup
+RESTORE DATABASE QLSV_DoAn_2 
+FROM DISK = 'D:\Do an HQTCSDL.bak'
+WITH FILE = 1,
+     REPLACE,
+     STATS = 10;
+GO
+
+-- 2. Neu co Differential Backup
+RESTORE DATABASE QLSV_DoAn_2 
+FROM DISK = 'D:\Do an HQTCSDL_Diff_20250101.bak'
+WITH FILE = 1,
+     NORECOVERY,
+     STATS = 10;
+GO
+
+-- 3. Ap dung Transaction Log neu co
+RESTORE LOG QLSV_DoAn_2 
+FROM DISK = 'D:\QLSV_DoAn_Log_20250101.trn'
+WITH FILE = 1,
+     RECOVERY;
+GO
+
+-- 4. Kiem tra database sau khi phuc hoi
+DBCC CHECKDB('QLSV_DoAn_2') WITH NO_INFOMSGS;
+GO
+\end{lstlisting}
+
+
+\subsection{Các Stored Procedures, Functions và Triggers}
+
+\textbf{Stored Procedures quan trọng}\\
+
+\begin{lstlisting}[style=sql, caption={Procedure đăng ký học phần cho sinh viên}]
+CREATE PROCEDURE sp_DangKyHocPhan
+    @MaSV NVARCHAR(10),
+    @MaLHP NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiem tra lop hoc phan ton tai
+    IF NOT EXISTS (SELECT 1 FROM LopHocPhan WHERE MaLHP = @MaLHP)
+    BEGIN
+        PRINT N'Lop hoc phan khong ton tai!';
+        RETURN;
+    END;
+
+    -- Kiem tra sinh vien da dang ky
+    IF EXISTS (SELECT 1 FROM DangKyHocPhan 
+               WHERE MaSV = @MaSV AND MaLHP = @MaLHP)
+    BEGIN
+        PRINT N'Sinh vien da dang ky lop nay!';
+        RETURN;
+    END;
+
+    -- Kiem tra so luong
+    DECLARE @SL INT = (SELECT COUNT(*) FROM DangKyHocPhan 
+                       WHERE MaLHP = @MaLHP);
+    DECLARE @ToiDa INT = (SELECT SoLuongToiDa FROM LopHocPhan 
+                          WHERE MaLHP = @MaLHP);
+
+    IF @SL >= @ToiDa
+    BEGIN
+        PRINT N'Lop hoc phan da day!';
+        RETURN;
+    END;
+
+    -- Dang ky
+    INSERT INTO DangKyHocPhan (MaSV, MaLHP)
+    VALUES (@MaSV, @MaLHP);
+
+    PRINT N'Dang ky thanh cong!';
+END;
+GO
+\end{lstlisting}
+
+\textbf{Functions quan trọng}\\
+
+\begin{lstlisting}[style=sql, caption={Function tính điểm trung bình của sinh viên}]
+CREATE FUNCTION fn_TinhDiemTrungBinh (@MaSV NVARCHAR(10))
+RETURNS FLOAT
+AS
+BEGIN
+    DECLARE @DTB FLOAT;
+    
+    SELECT @DTB = AVG(DiemTongKet)
+    FROM DangKyHocPhan
+    WHERE MaSV = @MaSV
+      AND DiemTongKet IS NOT NULL;
+    
+    RETURN @DTB;
+END;
+GO
+\end{lstlisting}
+
+\textbf{Triggers quan trọng}\\
+
+\begin{lstlisting}[style=sql, caption={Trigger tự động tính điểm tổng kết}]
+CREATE TRIGGER trg_TinhDiemTongKet
+ON DangKyHocPhan
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE D
+    SET D.DiemTongKet = ROUND(
+        (ISNULL(D.DiemChuyenCan, 0)*0.1 +
+         ISNULL(D.DiemGiuaKy, 0)*0.3 +
+         ISNULL(D.DiemCuoiKy, 0)*0.6), 2)
+    FROM DangKyHocPhan D
+    JOIN inserted I
+        ON D.MaSV = I.MaSV AND D.MaLHP = I.MaLHP;
+END;
+GO
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql, caption={Trigger ngăn xóa chức vụ đang sử dụng}]
+CREATE TRIGGER TR_NGAN_CHAN_XOA_CHUCVU
+ON ChucVu
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF EXISTS (
+        SELECT 1
+        FROM deleted d
+        INNER JOIN GiangVien g ON d.MaChucVu = g.MaChucVu
+    )
+    BEGIN
+        RAISERROR(N'Loi: Khong the xoa Chuc vu. 
+            Van con Giang vien duoc gan voi Chuc vu nay.', 16, 1);
+        RETURN;
+    END
+    ELSE
+    BEGIN
+        DELETE FROM ChucVu
+        WHERE MaChucVu IN (SELECT MaChucVu FROM deleted);
+    END
+END
+GO
+\end{lstlisting}
+
+\newpage

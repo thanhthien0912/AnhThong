@@ -1,0 +1,786 @@
+\section{XÂY DỰNG ỨNG DỤNG}
+
+\subsection{Giới thiệu}
+Chương này trình bày chi tiết về việc xây dựng ứng dụng Quản lý Sinh viên sử dụng ASP.NET MVC Framework. Mỗi thành viên trong nhóm đã phát triển ít nhất một chức năng độc lập, tích hợp đầy đủ với cơ sở dữ liệu SQL Server và sử dụng các cấu trúc đã xây dựng ở Chương 2 (Stored Procedures, Functions, Triggers, Cursors, Transactions).
+
+\subsection{Kiến trúc ứng dụng}
+
+\textbf{Mô hình MVC}\\
+Ứng dụng được xây dựng theo mô hình MVC (Model-View-Controller):
+\begin{itemize}
+	\item \textbf{Model:} Đại diện cho dữ liệu và logic nghiệp vụ
+	\item \textbf{View:} Giao diện người dùng, hiển thị dữ liệu
+	\item \textbf{Controller:} Xử lý request, điều phối giữa Model và View
+\end{itemize}
+
+
+\textbf{Cấu trúc thư mục dự án}\\
+\begin{verbatim}
+QuanLySinhVien/
+├── Controllers/        # Các controller xử lý request
+├── Models/            # Các model entity và view model
+├── Views/             # Các view hiển thị
+├── Content/           # CSS, Images  
+├── Scripts/           # JavaScript files
+└── Web.config         # Configuration file
+\end{verbatim}
+
+\subsection{Kết nối Database}
+
+\textbf{Configuration trong Web.config}\\
+Cấu hình connection string để kết nối với SQL Server:
+
+\begin{lstlisting}[style=csharp, caption={Connection string trong Web.config}]
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <connectionStrings>
+    <add name="QLSV_DoAn" 
+         connectionString="Data Source=localhost;
+                          Initial Catalog=QLSV_DoAn;
+                          Integrated Security=True;
+                          MultipleActiveResultSets=True;
+                          Application Name=QLSV_Application" 
+         providerName="System.Data.SqlClient" />
+  </connectionStrings>
+</configuration>
+\end{lstlisting}
+
+\textbf{DatabaseHelper Class}\\
+Lớp helper để thực thi stored procedures và functions:
+
+\begin{lstlisting}[style=csharp, caption={DatabaseHelper class}]
+public class DatabaseHelper
+{
+    private static string connectionString = 
+        ConfigurationManager.ConnectionStrings["QLSV_DoAn"]
+                           .ConnectionString;
+    
+    // Thuc thi stored procedure
+    public static DataTable ExecuteStoredProcedure(
+        string procedureName,params SqlParameter[] parameters)
+    {
+        using (SqlConnection conn = GetConnection())
+        {
+            using (SqlCommand cmd = new SqlCommand(procedureName, conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                if (parameters != null)
+                    cmd.Parameters.AddRange(parameters);
+                
+                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                adapter.Fill(dt);
+                return dt;
+            }
+        }
+    }
+    
+    // Goi function tra ve gia tri
+    public static object ExecuteFunction(string functionCall, 
+                                        params SqlParameter[] parameters)
+    {
+        using (SqlConnection conn = GetConnection())
+        {
+            using (SqlCommand cmd = new SqlCommand(functionCall, conn))
+            {
+                if (parameters != null)
+                    cmd.Parameters.AddRange(parameters);
+                
+                conn.Open();
+                return cmd.ExecuteScalar();
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{Phân công và triển khai chức năng}
+
+\textbf{Bảng phân công chức năng cho từng thành viên:}
+
+\begin{table}[H]
+	\centering
+	\caption{Phân công chức năng cho các thành viên}
+	\resizebox{\textwidth}{!}{
+		\begin{tabular}{|l|l|p{7cm}|}
+			\hline
+			\textbf{Thành viên}    & \textbf{Chức năng}      & \textbf{Stored Proc/Function/Trigger sử dụng}                                                                     \\ \hline
+			Võ Anh Khoa            & Quản lý Giảng viên      & SP\_CAPNHAT\_CHUCVU\_GV, FN\_DEM\_GV\_THEO\_CHUCVU, TR\_NGAN\_CHAN\_XOA\_CHUCVU, SP\_THANG\_CHUC\_TRUONG\_KHOA    \\ \hline
+			Nguyễn Gia Bảo         & Quản lý Khoa            & sp\_ThemKhoa, fn\_DemKhoaCoSoDienThoai, trg\_KiemTraSoDienThoai, sp\_DuyetTungHeDaoTao                            \\ \hline
+			Nguyễn Viết An Bình    & Đăng ký và Quản lý điểm & sp\_DangKyHocPhan, trg\_TinhDiemTongKet, fn\_TinhDiemTrungBinh, Transaction đăng ký                               \\ \hline
+			Mã Nhật Phong          & Quản lý Sinh viên       & sp\_LayDanhSachSV\_TheoLop, fn\_DemSoSinhVien\_TheoLop, trg\_NganXoaLop\_KhiConSinhVien, sp\_ChuyenLopChoSinhVien \\ \hline
+			Nguyễn Hữu Hoàng Thông & Quản lý Môn học         & sp\_ThemMonHoc, sp\_XoaMonHoc, fn\_LayDanhSachMonTienQuyet, sp\_BaoCaoHocKy, fn\_KiemTraTienQuyet                 \\ \hline
+		\end{tabular}
+	}
+\end{table}
+
+
+\subsection{Chức năng 1: Quản lý Giảng viên (Võ Anh Khoa)}
+
+\textbf{Mô tả chức năng:}\\
+Chức năng cho phép quản lý thông tin giảng viên, cập nhật chức vụ, thống kê giảng viên theo chức vụ. Sử dụng stored procedure \texttt{SP\_CAPNHAT\_CHUCVU\_GV},\newline function \texttt{FN\_DEM\_GV\_THEO\_CHUCVU} và trigger \texttt{TR\_NGAN\_CHAN\_XOA\_CHUCVU}.
+
+% [CẦN THÊM HÌNH: Giao diện màn hình Quản lý giảng viên]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.2: Giao diện màn hình Quản lý giảng viên]}}}
+	\caption{Màn hình Quản lý giảng viên}
+	\label{fig:quan_ly_giang_vien}
+\end{figure}
+
+\textbf{Code triển khai - GiangVienController:}
+
+\begin{lstlisting}[style=csharp, caption={GiangVienController - Cập nhật chức vụ giảng viên}]
+public class GiangVienController : Controller
+{
+    // POST: GiangVien/CapNhatChucVu
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public ActionResult CapNhatChucVu(string maGV, string maChucVuMoi)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE SP_CAPNHAT_CHUCVU_GV
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaGV", maGV),
+                new SqlParameter("@MaChucVuMoi", maChucVuMoi)
+            };
+            
+            DatabaseHelper.ExecuteStoredProcedure("SP_CAPNHAT_CHUCVU_GV", parameters);
+            
+            TempData["Success"] = "Cap nhat chuc vu thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Thong ke giang vien theo chuc vu - GOI FUNCTION
+    public ActionResult ThongKeTheoChucVu(string maChucVu)
+    {
+        // GOI FUNCTION FN_DEM_GV_THEO_CHUCVU
+        string query = "SELECT dbo.FN_DEM_GV_THEO_CHUCVU(@MaChucVu) AS SoLuong";
+        SqlParameter param = new SqlParameter("@MaChucVu", maChucVu);
+        
+        int soLuong = (int)DatabaseHelper.ExecuteScalar(query, param);
+        ViewBag.SoLuongGV = soLuong;
+        ViewBag.TenChucVu = GetTenChucVu(maChucVu);
+        
+        return View();
+    }
+    
+    // Thang chuc truong khoa - SU DUNG TRANSACTION
+    [HttpPost]
+    public ActionResult ThangChucTruongKhoa(string maGVThangChuc, string maKhoa)
+    {
+        try
+        {
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaGVThangChuc", maGVThangChuc),
+                new SqlParameter("@MaKhoa", maKhoa)
+            };
+            
+            // GOI STORED PROCEDURE SP_THANG_CHUC_TRUONG_KHOA (Co TRANSACTION ben trong)
+            DatabaseHelper.ExecuteStoredProcedure("SP_THANG_CHUC_TRUONG_KHOA", parameters);
+            
+            TempData["Success"] = "Thang chuc truong khoa thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+}
+\end{lstlisting}
+
+% [CẦN THÊM HÌNH: Form cập nhật chức vụ giảng viên]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.3: Form cập nhật chức vụ giảng viên]}}}
+	\caption{Form cập nhật chức vụ}
+	\label{fig:form_cap_nhat_chuc_vu}
+\end{figure}
+
+\subsection{Chức năng 2: Quản lý Khoa (Nguyễn Gia Bảo)}
+
+\textbf{Mô tả chức năng:}\\
+Cho phép quản lý thông tin khoa, thêm khoa mới, thống kê khoa có số điện thoại, duyệt danh sách hệ đào tạo. Sử dụng stored procedure \texttt{sp\_ThemKhoa},\newline function \texttt{fn\_DemKhoaCoSoDienThoai}, trigger \texttt{trg\_KiemTraSoDienThoai} và \newline cursor \texttt{sp\_DuyetTungHeDaoTao}.
+
+% [CẦN THÊM HÌNH: Giao diện quản lý khoa]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.4: Giao diện quản lý khoa]}}}
+	\caption{Màn hình quản lý khoa}
+	\label{fig:quan_ly_khoa}
+\end{figure}
+
+\textbf{Code triển khai - KhoaController:}
+
+\begin{lstlisting}[style=csharp, caption={KhoaController - Quản lý thông tin khoa}]
+public class KhoaController : Controller
+{
+    // POST: Khoa/ThemKhoa
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public ActionResult ThemKhoa(string maKhoa, string tenKhoa, string soDienThoai)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_ThemKhoa
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaKhoa", maKhoa),
+                new SqlParameter("@TenKhoa", tenKhoa),
+                new SqlParameter("@SoDienThoai", soDienThoai)
+            };
+            
+            DatabaseHelper.ExecuteStoredProcedure("sp_ThemKhoa", parameters);
+            
+            TempData["Success"] = "Them khoa thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            // Trigger trg_KiemTraSoDienThoai se kiem tra tu dong
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Dem so khoa co so dien thoai - GOI FUNCTION
+    public ActionResult ThongKeSoDienThoai()
+    {
+        // GOI FUNCTION fn_DemKhoaCoSoDienThoai
+        string query = "SELECT dbo.fn_DemKhoaCoSoDienThoai() AS SoLuong";
+        int soKhoa = (int)DatabaseHelper.ExecuteScalar(query);
+        
+        ViewBag.SoKhoaCoSDT = soKhoa;
+        return View();
+    }
+    
+    // Duyet tung he dao tao - SU DUNG CURSOR
+    public ActionResult DuyetHeDaoTao()
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_DuyetTungHeDaoTao (chua CURSOR)
+            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_DuyetTungHeDaoTao");
+            
+            List<HeDaoTaoModel> danhSach = new List<HeDaoTaoModel>();
+            foreach (DataRow row in dt.Rows)
+            {
+                danhSach.Add(new HeDaoTaoModel
+                {
+                    MaHeDT = row["MaHeDT"].ToString(),
+                    TenHeDT = row["TenHeDT"].ToString()
+                });
+            }
+            
+            return View(danhSach);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Cap nhat he dao tao - SU DUNG TRANSACTION
+    [HttpPost]
+    public ActionResult CapNhatHeDaoTao(string maHeDT, string tenHeDTMoi)
+    {
+        using (SqlConnection conn = DatabaseHelper.GetConnection())
+        {
+            conn.Open();
+            SqlTransaction transaction = conn.BeginTransaction();
+            
+            try
+            {
+                SqlCommand cmd = new SqlCommand(
+                    "UPDATE HeDaoTao SET TenHeDT = @TenMoi WHERE MaHeDT = @Ma",
+                    conn, transaction);
+                cmd.Parameters.AddWithValue("@TenMoi", tenHeDTMoi);
+                cmd.Parameters.AddWithValue("@Ma", maHeDT);
+                
+                cmd.ExecuteNonQuery();
+                transaction.Commit();
+                
+                TempData["Success"] = "Cap nhat he dao tao thanh cong!";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                TempData["Error"] = "Loi: " + ex.Message;
+                return RedirectToAction("Index");
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+
+
+\subsection{Chức năng 3: Đăng ký và Quản lý điểm (Nguyễn Viết An Bình)}
+
+\textbf{Mô tả chức năng:}\\
+Đăng ký học phần và quản lý điểm sinh viên với tự động tính điểm tổng kết thông qua trigger. Sử dụng stored procedure \texttt{sp\_DangKyHocPhan},\newline trigger \texttt{trg\_TinhDiemTongKet} và function \texttt{fn\_TinhDiemTrungBinh}.
+
+% [CẦN THÊM HÌNH: Giao diện nhập điểm]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.6: Giao diện nhập điểm cho sinh viên]}}}
+	\caption{Màn hình nhập điểm}
+	\label{fig:nhap_diem}
+\end{figure}
+
+\textbf{Code triển khai - DangKyDiemController:}
+
+\begin{lstlisting}[style=csharp, caption={DangKyDiemController - Đăng ký học phần và quản lý điểm}]
+public class DangKyDiemController : Controller
+{
+    // POST: DangKyDiem/DangKyHocPhan
+    [HttpPost]
+    public ActionResult DangKyHocPhan(string maSV, string maLHP)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_DangKyHocPhan
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaSV", maSV),
+                new SqlParameter("@MaLHP", maLHP)
+            };
+            
+            DatabaseHelper.ExecuteStoredProcedure("sp_DangKyHocPhan", parameters);
+            
+            TempData["Success"] = "Dang ky hoc phan thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Nhap diem va tinh tong ket - TRIGGER trg_TinhDiemTongKet tu dong tinh
+    [HttpPost]
+    public ActionResult NhapDiem(string maSV, string maLHP, 
+        float diemCC, float diemGK, float diemCK)
+    {
+        try
+        {
+            using (SqlConnection conn = DatabaseHelper.GetConnection())
+            {
+                conn.Open();
+                
+                // Cap nhat diem - TRIGGER trg_TinhDiemTongKet se tu dong tinh DiemTongKet
+                string updateQuery = @"UPDATE DangKyHocPhan 
+                                     SET DiemChuyenCan = @DiemCC,
+                                         DiemGiuaKy = @DiemGK, 
+                                         DiemCuoiKy = @DiemCK
+                                     WHERE MaSV = @MaSV AND MaLHP = @MaLHP";
+                
+                SqlCommand cmd = new SqlCommand(updateQuery, conn);
+                cmd.Parameters.AddWithValue("@MaSV", maSV);
+                cmd.Parameters.AddWithValue("@MaLHP", maLHP);
+                cmd.Parameters.AddWithValue("@DiemCC", diemCC);
+                cmd.Parameters.AddWithValue("@DiemGK", diemGK);
+                cmd.Parameters.AddWithValue("@DiemCK", diemCK);
+                
+                cmd.ExecuteNonQuery();
+                // TRIGGER trg_TinhDiemTongKet da tu dong tinh DiemTongKet
+                
+                TempData["Success"] = "Nhap diem thanh cong! Diem tong ket da duoc tinh tu dong.";
+                return RedirectToAction("Index");
+            }
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Xem diem trung binh - GOI FUNCTION fn_TinhDiemTrungBinh
+    public ActionResult XemDiemTrungBinh(string maSV)
+    {
+        string query = "SELECT dbo.fn_TinhDiemTrungBinh(@MaSV) AS DiemTB";
+        SqlParameter param = new SqlParameter("@MaSV", maSV);
+        
+        float diemTB = (float)DatabaseHelper.ExecuteScalar(query, param);
+        ViewBag.DiemTrungBinh = diemTB;
+        ViewBag.MaSV = maSV;
+        
+        return View();
+    }
+    
+    // Gop dang ky va cap nhat diem - SU DUNG TRANSACTION
+    [HttpPost]
+    public ActionResult DangKyVaNhapDiem(string maSV, string maLHP,
+        float diemCC, float diemGK, float diemCK)
+    {
+        using (SqlConnection conn = DatabaseHelper.GetConnection())
+        {
+            conn.Open();
+            SqlTransaction transaction = conn.BeginTransaction();
+            
+            try
+            {
+                // Buoc 1: Dang ky hoc phan
+                SqlCommand cmdDangKy = new SqlCommand("sp_DangKyHocPhan", conn, transaction);
+                cmdDangKy.CommandType = CommandType.StoredProcedure;
+                cmdDangKy.Parameters.AddWithValue("@MaSV", maSV);
+                cmdDangKy.Parameters.AddWithValue("@MaLHP", maLHP);
+                cmdDangKy.ExecuteNonQuery();
+                
+                // Buoc 2: Cap nhat diem
+                string updateQuery = @"UPDATE DangKyHocPhan 
+                                     SET DiemChuyenCan = @DiemCC,
+                                         DiemGiuaKy = @DiemGK,
+                                         DiemCuoiKy = @DiemCK
+                                     WHERE MaSV = @MaSV AND MaLHP = @MaLHP";
+                
+                SqlCommand cmdDiem = new SqlCommand(updateQuery, conn, transaction);
+                cmdDiem.Parameters.AddWithValue("@MaSV", maSV);
+                cmdDiem.Parameters.AddWithValue("@MaLHP", maLHP);
+                cmdDiem.Parameters.AddWithValue("@DiemCC", diemCC);
+                cmdDiem.Parameters.AddWithValue("@DiemGK", diemGK);
+                cmdDiem.Parameters.AddWithValue("@DiemCK", diemCK);
+                cmdDiem.ExecuteNonQuery();
+                
+                transaction.Commit();
+                TempData["Success"] = "Dang ky va nhap diem thanh cong!";
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                TempData["Error"] = "Loi: " + ex.Message;
+            }
+            
+            return RedirectToAction("Index");
+        }
+    }
+}
+\end{lstlisting}
+
+% [CẦN THÊM HÌNH: Bảng điểm sinh viên]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.7: Bảng điểm chi tiết của sinh viên]}}}
+	\caption{Bảng điểm sinh viên}
+	\label{fig:bang_diem}
+\end{figure}
+
+\subsection{Chức năng 4: Quản lý Sinh viên (Mã Nhật Phong)}
+
+\textbf{Mô tả chức năng:}\\
+Quản lý thông tin sinh viên, hiển thị danh sách theo lớp, chuyển lớp cho sinh viên. Sử dụng stored procedure \texttt{sp\_LayDanhSachSV\_TheoLop}, \texttt{sp\_ChuyenLopChoSinhVien}, function \texttt{fn\_DemSoSinhVien\_TheoLop} và trigger \texttt{trg\_NganXoaLop\_KhiConSinhVien}.
+
+% [CẦN THÊM HÌNH: Giao diện quản lý sinh viên]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.8: Giao diện quản lý sinh viên]}}}
+	\caption{Màn hình quản lý sinh viên}
+	\label{fig:quan_ly_sinh_vien_phong}
+\end{figure}
+
+\textbf{Code triển khai - SinhVienController:}
+
+\begin{lstlisting}[style=csharp, caption={SinhVienController - Quản lý sinh viên}]
+public class SinhVienController : Controller
+{
+    // GET: SinhVien/LayDanhSachTheoLop
+    public ActionResult LayDanhSachTheoLop(string maLop)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_LayDanhSachSV_TheoLop
+            SqlParameter parameter = new SqlParameter("@MaLop", maLop);
+            DataTable dt = DatabaseHelper.ExecuteStoredProcedure(
+                "sp_LayDanhSachSV_TheoLop", parameter);
+            
+            List<SinhVienModel> danhSach = new List<SinhVienModel>();
+            foreach (DataRow row in dt.Rows)
+            {
+                danhSach.Add(new SinhVienModel
+                {
+                    MaSV = row["MaSV"].ToString(),
+                    HoTenSV = row["HoTenSV"].ToString(),
+                    NgaySinh = Convert.ToDateTime(row["NgaySinh"]),
+                    GioiTinh = row["GioiTinh"].ToString(),
+                    DiaChi = row["DiaChi"].ToString(),
+                    Email = row["Email"].ToString(),
+                    SoDT = row["SoDT"].ToString()
+                });
+            }
+            
+            // GOI FUNCTION fn_DemSoSinhVien_TheoLop
+            string funcCall = "SELECT dbo.fn_DemSoSinhVien_TheoLop(@MaLop) AS SiSo";
+            SqlParameter paramFunc = new SqlParameter("@MaLop", maLop);
+            int siSo = (int)DatabaseHelper.ExecuteScalar(funcCall, paramFunc);
+            
+            ViewBag.SiSoLop = siSo;
+            ViewBag.MaLop = maLop;
+            
+            return View(danhSach);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // POST: SinhVien/ChuyenLop - SU DUNG TRANSACTION
+    [HttpPost]
+    public ActionResult ChuyenLop(string maSV, string maLopMoi)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_ChuyenLopChoSinhVien (co TRANSACTION)
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaSV", maSV),
+                new SqlParameter("@MaLopMoi", maLopMoi)
+            };
+            
+            DatabaseHelper.ExecuteStoredProcedure("sp_ChuyenLopChoSinhVien", parameters);
+            
+            TempData["Success"] = "Chuyen lop thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Duyet danh sach sinh vien - SU DUNG CURSOR
+    public ActionResult DuyetSinhVienBangCursor(string maLop)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_DuyetSinhVien_BangCursor (chua CURSOR)
+            SqlParameter parameter = new SqlParameter("@MaLop", maLop);
+            DataTable dt = DatabaseHelper.ExecuteStoredProcedure(
+                "sp_DuyetSinhVien_BangCursor", parameter);
+            
+            ViewBag.MaLop = maLop;
+            return View(dt);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Lay sinh vien theo khoa - GOI FUNCTION
+    public ActionResult LayTheoKhoa(string maKhoa)
+    {
+        string query = "SELECT * FROM dbo.fn_LaySinhVien_TheoKhoa(@MaKhoa)";
+        SqlParameter param = new SqlParameter("@MaKhoa", maKhoa);
+        
+        DataTable dt = DatabaseHelper.ExecuteQuery(query, param);
+        
+        return View(dt);
+    }
+}
+\end{lstlisting}
+
+% [CẦN THÊM HÌNH: Danh sách sinh viên theo lớp]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.9: Danh sách sinh viên theo lớp]}}}
+	\caption{Kết quả danh sách sinh viên}
+	\label{fig:danh_sach_sv_lop}
+\end{figure}
+
+\subsection{Chức năng 5: Quản lý Môn học (Nguyễn Hữu Hoàng Thông)}
+
+\textbf{Mô tả chức năng:}\\
+Quản lý thông tin môn học, môn tiên quyết, báo cáo học kỳ. Sử dụng stored procedure \texttt{sp\_ThemMonHoc}, \texttt{sp\_XoaMonHoc}, \texttt{sp\_BaoCaoHocKy}, function \texttt{fn\_LayDanhSachMonTienQuyet}, \texttt{fn\_KiemTraTienQuyet} và trigger \texttt{trg\_NganXoaHocKy}.
+
+% [CẦN THÊM HÌNH: Giao diện quản lý môn học]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.10: Giao diện quản lý môn học]}}}
+	\caption{Màn hình quản lý môn học}
+	\label{fig:quan_ly_mon_hoc}
+\end{figure}
+
+\textbf{Code triển khai - MonHocController:}
+
+\begin{lstlisting}[style=csharp, caption={MonHocController - Quản lý môn học}]
+public class MonHocController : Controller
+{
+    // POST: MonHoc/ThemMonHoc
+    [HttpPost]
+    public ActionResult ThemMonHoc(string maMH, string tenMH, int soTinChi, string maMHTienQuyet)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_ThemMonHoc (co TRANSACTION ben trong)
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaMH", maMH),
+                new SqlParameter("@TenMH", tenMH),
+                new SqlParameter("@SoTinChi", soTinChi),
+                new SqlParameter("@MaMHTienQuyet", (object)maMHTienQuyet ?? DBNull.Value)
+            };
+            
+            DatabaseHelper.ExecuteStoredProcedure("sp_ThemMonHoc", parameters);
+            
+            TempData["Success"] = "Them mon hoc thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // POST: MonHoc/XoaMonHoc
+    [HttpPost]
+    public ActionResult XoaMonHoc(string maMH)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_XoaMonHoc
+            SqlParameter parameter = new SqlParameter("@MaMH", maMH);
+            DatabaseHelper.ExecuteStoredProcedure("sp_XoaMonHoc", parameter);
+            
+            TempData["Success"] = "Xoa mon hoc thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            // Trigger trg_NganXoaHocKy co the ngan xoa
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Lay danh sach mon tien quyet - GOI FUNCTION
+    public ActionResult DanhSachMonTienQuyet(string maMH)
+    {
+        // GOI FUNCTION fn_LayDanhSachMonTienQuyet
+        string query = "SELECT * FROM dbo.fn_LayDanhSachMonTienQuyet(@MaMH)";
+        SqlParameter param = new SqlParameter("@MaMH", maMH);
+        
+        DataTable dt = DatabaseHelper.ExecuteQuery(query, param);
+        ViewBag.MaMonHoc = maMH;
+        
+        return View(dt);
+    }
+    
+    // Kiem tra tien quyet - GOI FUNCTION
+    public ActionResult KiemTraTienQuyet(string maSV, string maMH)
+    {
+        // GOI FUNCTION fn_KiemTraTienQuyet
+        string query = "SELECT dbo.fn_KiemTraTienQuyet(@MaSV, @MaMH_Chinh) AS KetQua";
+        SqlParameter[] parameters = new SqlParameter[]
+        {
+            new SqlParameter("@MaSV", maSV),
+            new SqlParameter("@MaMH_Chinh", maMH)
+        };
+        
+        int ketQua = (int)DatabaseHelper.ExecuteScalar(query, parameters);
+        ViewBag.DuDieuKien = (ketQua == 1);
+        ViewBag.MaSV = maSV;
+        ViewBag.MaMH = maMH;
+        
+        return View();
+    }
+    
+    // Bao cao hoc ky - SU DUNG CURSOR
+    public ActionResult BaoCaoHocKy(string maHK)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_BaoCaoHocKy (chua CURSOR)
+            SqlParameter parameter = new SqlParameter("@MaHK", maHK);
+            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_BaoCaoHocKy", parameter);
+            
+            ViewBag.MaHocKy = maHK;
+            return View(dt);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+    
+    // Dang ky mon hoc voi kiem tra tien quyet
+    [HttpPost]
+    public ActionResult DangKyMonHoc(string maSV, string maLHP)
+    {
+        try
+        {
+            // GOI STORED PROCEDURE sp_DangKyMonHoc (kiem tra tien quyet ben trong)
+            SqlParameter[] parameters = new SqlParameter[]
+            {
+                new SqlParameter("@MaSV", maSV),
+                new SqlParameter("@MaLHP", maLHP)
+            };
+            
+            DatabaseHelper.ExecuteStoredProcedure("sp_DangKyMonHoc", parameters);
+            
+            TempData["Success"] = "Dang ky mon hoc thanh cong!";
+            return RedirectToAction("Index");
+        }
+        catch (SqlException ex)
+        {
+            // Trigger trg_KiemTraNgayDangKy co the bao loi
+            TempData["Error"] = "Loi: " + ex.Message;
+            return RedirectToAction("Index");
+        }
+    }
+}
+\end{lstlisting}
+
+% [CẦN THÊM HÌNH: Báo cáo học kỳ]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.11: Báo cáo sĩ số học kỳ]}}}
+	\caption{Báo cáo học kỳ}
+	\label{fig:bao_cao_hoc_ky}
+\end{figure}
+
+\subsection{Testing và Demo}
+
+\textbf{Kiểm thử chức năng:}
+\begin{itemize}
+	\item Test thêm sinh viên với dữ liệu hợp lệ và không hợp lệ
+	\item Test đăng ký học phần với các trường hợp: lớp đầy, vượt tín chỉ
+	\item Test nhập điểm và kiểm tra trigger tự động tính điểm
+	\item Test xét học bổng với các điều kiện khác nhau
+	\item Test báo cáo thống kê với dữ liệu lớn
+\end{itemize}
+
+% [CẦN THÊM HÌNH: Kết quả test các chức năng]
+\begin{figure}[H]
+	\centering
+	\fbox{\parbox{0.8\textwidth}{\centering\textit{[Hình 4.12: Kết quả kiểm thử các chức năng]}}}
+	\caption{Kết quả kiểm thử}
+	\label{fig:test_results}
+\end{figure}
+
+\textbf{Video demo:}
+\begin{itemize}
+	\item Link video demo chức năng 1: [URL]
+	\item Link video demo chức năng 2: [URL]
+	\item Link video demo chức năng 3: [URL]
+\end{itemize}

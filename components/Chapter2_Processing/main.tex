@@ -1,0 +1,634 @@
+\newpage
+\section{CÀI ĐẶT YÊU CẦU XỬ LÝ}
+
+\subsection{Giới thiệu tổng quan}
+Chương này trình bày chi tiết về việc cài đặt các yêu cầu xử lý phức tạp trong hệ thống quản lý sinh viên thông qua các cấu trúc lập trình T-SQL. Hệ thống được xây dựng với mục tiêu quản lý toàn diện các hoạt động đào tạo bao gồm: quản lý sinh viên, giảng viên, khoa, lớp học, môn học, học kỳ, lớp học phần, đăng ký học phần và điểm số. Các yêu cầu xử lý được thực hiện thông qua Stored Procedures, Functions, Triggers, Cursors và Transactions để đảm bảo tính toàn vẹn, tự động hóa và tối ưu hóa hiệu suất.
+
+\subsection{Phân tích các bảng dữ liệu sử dụng}
+
+\subsubsection{Nhóm bảng quản lý tổ chức}
+\begin{itemize}
+	\item \textbf{HeDaoTao}: Lưu trữ thông tin các hệ đào tạo (Chính quy, Chất lượng cao, Liên thông, Tại chức)
+	\item \textbf{Khoa}: Quản lý thông tin các khoa (CNTT, QTKD, Ngoại ngữ, Du lịch, Cơ khí)
+	\item \textbf{ChucVu}: Định nghĩa các chức vụ (Giảng viên, Trưởng khoa, Phó khoa, Trợ giảng, Nhân viên)
+	\item \textbf{Lop}: Quản lý các lớp học với quan hệ tới Khoa và Hệ đào tạo
+\end{itemize}
+
+\subsubsection{Nhóm bảng quản lý con người}
+\begin{itemize}
+	\item \textbf{GiangVien}: Lưu trữ thông tin giảng viên với quan hệ tới Khoa và ChucVu
+	\item \textbf{SinhVien}: Quản lý thông tin sinh viên với quan hệ tới Lop
+\end{itemize}
+
+\subsubsection{Nhóm bảng quản lý đào tạo}
+\begin{itemize}
+	\item \textbf{MonHoc}: Định nghĩa các môn học với số tín chỉ
+	\item \textbf{MonHoc\_TienQuyet}: Xác định quan hệ tiên quyết giữa các môn học
+	\item \textbf{HocKy}: Quản lý thông tin học kỳ với thời gian bắt đầu và kết thúc
+	\item \textbf{LopHocPhan}: Liên kết MonHoc, HocKy và GiangVien để tạo lớp học phần cụ thể
+	\item \textbf{DangKyHocPhan}: Ghi nhận việc đăng ký học phần của sinh viên với điểm số
+\end{itemize}
+
+\subsubsection{Nhóm bảng quản lý hệ thống}
+\begin{itemize}
+	\item \textbf{Account}: Quản lý tài khoản người dùng (Admin, Lecturer, Student)
+	\item \textbf{LoginLog}: Ghi nhận lịch sử đăng nhập
+	\item \textbf{LogoutLog}: Ghi nhận lịch sử đăng xuất
+	\item \textbf{LoiHeThong}: Lưu trữ các lỗi phát sinh trong hệ thống
+\end{itemize}
+
+\subsection{Phân tích luồng xử lý chính}
+
+\subsubsection{Luồng quản lý giảng viên và chức vụ}
+
+\textbf{1. Cập nhật chức vụ giảng viên (SP\_CAPNHAT\_CHUCVU\_GV)}
+
+Luồng xử lý:
+\begin{enumerate}
+	\item Kiểm tra tồn tại mã giảng viên
+	\item Kiểm tra tính hợp lệ của mã chức vụ mới
+	\item Cập nhật chức vụ cho giảng viên
+	\item Ghi nhận thành công
+\end{enumerate}
+
+\begin{lstlisting}[style=sql, caption={Stored Procedure cập nhật chức vụ giảng viên}]
+CREATE PROCEDURE SP_CAPNHAT_CHUCVU_GV
+    @MaGV NVARCHAR(10),
+    @MaChucVuMoi NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- Kiem tra ton tai Giang vien
+    IF NOT EXISTS (SELECT 1 FROM GiangVien WHERE MaGV = @MaGV)
+    BEGIN
+        RAISERROR(N'Loi: Ma Giang vien khong ton tai.', 16, 1);
+        RETURN;
+    END
+    -- Kiem tra ton tai Chuc vu moi
+    IF NOT EXISTS (SELECT 1 FROM ChucVu WHERE MaChucVu = @MaChucVuMoi)
+    BEGIN
+        RAISERROR(N'Loi: Ma Chuc vu moi khong hop le.', 16, 1);
+        RETURN;
+    END
+    -- Cap nhat
+    UPDATE GiangVien
+    SET MaChucVu = @MaChucVuMoi
+    WHERE MaGV = @MaGV;
+
+    PRINT N'Cap nhat chuc vu thanh cong cho Giang vien ' + @MaGV;
+END
+GO
+\end{lstlisting}
+
+\textbf{Ví dụ thực thi:}
+\begin{lstlisting}[style=sql]
+-- Chuyen GV003 tu Giang vien (GV) thanh Truong khoa (TK)
+EXEC SP_CAPNHAT_CHUCVU_GV N'GV003', N'TK';
+\end{lstlisting}
+
+\textbf{2. Thăng chức trưởng khoa với Transaction (SP\_THANG\_CHUC\_TRUONG\_KHOA)}
+
+Luồng xử lý có tính giao dịch:
+\begin{enumerate}
+	\item Bắt đầu giao dịch
+	\item Tìm trưởng khoa cũ của khoa
+	\item Kiểm tra giảng viên thăng chức thuộc khoa đó
+	\item Hạ chức trưởng khoa cũ về giảng viên
+	\item Thăng chức giảng viên mới lên trưởng khoa
+	\item Commit hoặc Rollback giao dịch
+\end{enumerate}
+
+\begin{lstlisting}[style=sql, caption={Transaction thăng chức trưởng khoa}]
+CREATE PROCEDURE SP_THANG_CHUC_TRUONG_KHOA
+    @MaGVThangChuc NVARCHAR(10),
+    @MaKhoa NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    
+    DECLARE @ErrorState INT = 0;
+    DECLARE @MaGVCu NVARCHAR(10);
+    
+    -- Tim Truong khoa cu
+    SELECT @MaGVCu = MaGV
+    FROM GiangVien
+    WHERE MaKhoa = @MaKhoa AND MaChucVu = N'TK';
+    
+    -- Kiem tra GV thang chuc thuoc Khoa
+    IF NOT EXISTS (SELECT 1 FROM GiangVien 
+                   WHERE MaGV = @MaGVThangChuc AND MaKhoa = @MaKhoa)
+    BEGIN
+        SET @ErrorState = 1;
+    END
+    
+    -- Ha chuc Truong khoa cu
+    IF @MaGVCu IS NOT NULL
+    BEGIN
+        UPDATE GiangVien
+        SET MaChucVu = N'GV'
+        WHERE MaGV = @MaGVCu;
+    END
+    
+    -- Thang chuc Giang vien moi
+    IF @ErrorState = 0
+    BEGIN
+        UPDATE GiangVien
+        SET MaChucVu = N'TK'
+        WHERE MaGV = @MaGVThangChuc;
+    END
+    
+    -- Xu ly ket qua giao dich
+    IF @ErrorState = 1 OR @@ERROR <> 0
+    BEGIN
+        ROLLBACK TRANSACTION;
+        RAISERROR(N'Giao dich khong thanh cong.', 16, 1);
+    END
+    ELSE
+    BEGIN
+        COMMIT TRANSACTION;
+        PRINT N'Thang chuc thanh cong!';
+    END
+END
+GO
+\end{lstlisting}
+
+\subsubsection{Luồng quản lý khoa và hệ đào tạo}
+
+\textbf{1. Thêm khoa mới với kiểm tra trùng lặp (sp\_ThemKhoa)}
+
+Luồng xử lý:
+\begin{enumerate}
+	\item Kiểm tra tên khoa đã tồn tại chưa
+	\item Nếu trùng, ghi log lỗi vào bảng LoiHeThong
+	\item Nếu không trùng, thêm khoa mới
+\end{enumerate}
+
+\begin{lstlisting}[style=sql, caption={Stored Procedure thêm khoa}]
+CREATE PROCEDURE sp_ThemKhoa
+    @MaKhoa NVARCHAR(10),
+    @TenKhoa NVARCHAR(100),
+    @SoDienThoai VARCHAR(15)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM Khoa WHERE TenKhoa = @TenKhoa)
+    BEGIN
+        INSERT INTO LoiHeThong (NoiDung)
+        VALUES (N'Trung ten khoa: ' + @TenKhoa);
+        PRINT N'Ten khoa da ton tai. Khong the them moi.';
+        RETURN;
+    END
+
+    INSERT INTO Khoa (MaKhoa, TenKhoa, SoDienThoai)
+    VALUES (@MaKhoa, @TenKhoa, @SoDienThoai);
+
+    PRINT N'Them khoa thanh cong!';
+END;
+GO
+\end{lstlisting}
+
+\textbf{2. Kiểm tra số điện thoại với Trigger (trg\_KiemTraSoDienThoai)}
+
+Trigger tự động kiểm tra định dạng số điện thoại khi thêm hoặc cập nhật khoa:
+
+\begin{lstlisting}[style=sql, caption={Trigger kiểm tra số điện thoại}]
+CREATE TRIGGER trg_KiemTraSoDienThoai
+ON Khoa
+FOR INSERT, UPDATE
+AS
+BEGIN
+    IF EXISTS (
+        SELECT * FROM inserted
+        WHERE SoDienThoai NOT LIKE '0%' OR LEN(SoDienThoai) <> 10
+    )
+    BEGIN
+        RAISERROR(N'So dien thoai khong hop le!', 16, 1);
+        ROLLBACK TRANSACTION;
+    END
+END
+\end{lstlisting}
+
+\subsubsection{Luồng quản lý đăng ký học phần}
+
+\textbf{1. Đăng ký học phần với kiểm tra điều kiện (sp\_DangKyHocPhan)}
+
+Luồng xử lý phức tạp:
+\begin{enumerate}
+	\item Kiểm tra lớp học phần tồn tại
+	\item Kiểm tra sinh viên đã đăng ký chưa
+	\item Kiểm tra sĩ số lớp học phần
+	\item Thực hiện đăng ký
+	\item Trigger tự động tính điểm tổng kết kích hoạt
+\end{enumerate}
+
+\begin{lstlisting}[style=sql, caption={Stored Procedure đăng ký học phần}]
+CREATE OR ALTER PROCEDURE sp_DangKyHocPhan
+    @MaSV NVARCHAR(10),
+    @MaLHP NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM LopHocPhan WHERE MaLHP = @MaLHP)
+    BEGIN
+        PRINT N'Lop hoc phan khong ton tai!';
+        RETURN;
+    END;
+
+    IF EXISTS (SELECT 1 FROM DangKyHocPhan 
+               WHERE MaSV = @MaSV AND MaLHP = @MaLHP)
+    BEGIN
+        PRINT N'Sinh vien da dang ky lop nay!';
+        RETURN;
+    END;
+
+    DECLARE @SL INT = (SELECT COUNT(*) FROM DangKyHocPhan WHERE MaLHP = @MaLHP);
+    DECLARE @ToiDa INT = (SELECT SoLuongToiDa FROM LopHocPhan WHERE MaLHP = @MaLHP);
+
+    IF @SL >= @ToiDa
+    BEGIN
+        PRINT N'Lop hoc phan da day!';
+        RETURN;
+    END;
+
+    INSERT INTO DangKyHocPhan (MaSV, MaLHP)
+    VALUES (@MaSV, @MaLHP);
+
+    PRINT N'Dang ky thanh cong!';
+END;
+GO
+\end{lstlisting}
+
+\textbf{2. Trigger tự động tính điểm tổng kết (trg\_TinhDiemTongKet)}
+
+Trigger tự động kích hoạt khi có cập nhật điểm:
+
+\begin{lstlisting}[style=sql, caption={Trigger tính điểm tổng kết}]
+CREATE OR ALTER TRIGGER trg_TinhDiemTongKet
+ON DangKyHocPhan
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE D
+    SET D.DiemTongKet = ROUND(
+        (ISNULL(D.DiemChuyenCan, 0)*0.1 +
+         ISNULL(D.DiemGiuaKy, 0)*0.3 +
+         ISNULL(D.DiemCuoiKy, 0)*0.6), 2)
+    FROM DangKyHocPhan D
+    JOIN inserted I
+        ON D.MaSV = I.MaSV AND D.MaLHP = I.MaLHP;
+END;
+\end{lstlisting}
+
+\subsubsection{Luồng quản lý môn học và tiên quyết}
+
+\textbf{1. Xóa môn học với kiểm tra ràng buộc (sp\_XoaMonHoc)}
+
+Luồng xử lý:
+\begin{enumerate}
+	\item Kiểm tra môn học có đang được sử dụng trong lớp học phần
+	\item Kiểm tra môn học có là tiên quyết của môn khác
+	\item Xóa quan hệ tiên quyết của môn này
+	\item Xóa môn học
+\end{enumerate}
+
+\begin{lstlisting}[style=sql, caption={Stored Procedure xóa môn học}]
+CREATE PROCEDURE sp_XoaMonHoc @MaMH NVARCHAR(10)
+AS
+BEGIN
+    -- Kiem tra mon co dang duoc LOP HOC PHAN su dung
+    IF EXISTS (SELECT * FROM LopHocPhan WHERE MaMH = @MaMH)
+    BEGIN
+        PRINT N'LOI: Khong the xoa mon. Mon hoc da duoc mo lop hoc phan.';
+        RETURN;
+    END
+    -- Kiem tra mon co la TIEN QUYET cho mon khac
+    IF EXISTS (SELECT * FROM MonHoc_TienQuyet WHERE MaMH_TienQuyet = @MaMH)
+    BEGIN
+        PRINT N'LOI: Khong the xoa mon. Mon hoc dang la tien quyet cho mon khac.';
+        RETURN;
+    END
+
+    -- Xoa quan he tien quyet
+    DELETE FROM MonHoc_TienQuyet
+    WHERE MaMH_Chinh = @MaMH;
+
+    -- Xoa mon hoc
+    DELETE FROM MonHoc
+    WHERE MaMH = @MaMH;
+END
+GO
+\end{lstlisting}
+
+\textbf{2. Kiểm tra điều kiện tiên quyết (fn\_KiemTraTienQuyet)}
+
+Function kiểm tra sinh viên đã học đủ môn tiên quyết:
+
+\begin{lstlisting}[style=sql, caption={Function kiểm tra tiên quyết}]
+CREATE FUNCTION fn_KiemTraTienQuyet
+(
+    @MaSV NVARCHAR(10),
+    @MaMH_Chinh NVARCHAR(10)
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @SoMonTienQuyet INT;
+    DECLARE @SoMonDaDat INT;
+    DECLARE @KetQua BIT = 0;
+
+    -- Dem tong so mon tien quyet
+    SELECT @SoMonTienQuyet = COUNT(*)
+    FROM MonHoc_TienQuyet
+    WHERE MaMH_Chinh = @MaMH_Chinh;
+
+    -- Neu khong co mon tien quyet -> Du dieu kien
+    IF @SoMonTienQuyet = 0
+    BEGIN
+        SET @KetQua = 1;
+        RETURN @KetQua;
+    END
+
+    -- Dem so mon tien quyet da dat (>= 4.0)
+    SELECT @SoMonDaDat = COUNT(DISTINCT mhtq.MaMH_TienQuyet)
+    FROM DangKyHocPhan AS dkhp
+    JOIN LopHocPhan AS lhp ON dkhp.MaLHP = lhp.MaLHP
+    JOIN MonHoc_TienQuyet AS mhtq ON lhp.MaMH = mhtq.MaMH_TienQuyet
+    WHERE
+        dkhp.MaSV = @MaSV
+        AND mhtq.MaMH_Chinh = @MaMH_Chinh
+        AND dkhp.DiemTongKet >= 4.0;
+
+    -- So sanh
+    IF @SoMonTienQuyet = @SoMonDaDat
+    BEGIN
+        SET @KetQua = 1;
+    END
+
+    RETURN @KetQua;
+END
+GO
+\end{lstlisting}
+
+\subsubsection{Luồng thống kê và báo cáo}
+
+\textbf{1. Báo cáo học kỳ với Cursor (sp\_BaoCaoHocKy)}
+
+Sử dụng Cursor để duyệt qua từng lớp học phần:
+
+\begin{lstlisting}[style=sql, caption={Cursor báo cáo học kỳ}]
+CREATE PROCEDURE sp_BaoCaoHocKy @MaHK NVARCHAR(10)
+AS
+BEGIN
+    PRINT N'--- BAO CAO SI SO HOC KY ' + @MaHK + N' ---';
+
+    DECLARE @MaLHP_Current NVARCHAR(10);
+    DECLARE @TenMH_Current NVARCHAR(100);
+    DECLARE @SiSo_Current INT;
+
+    -- Khai bao Cursor
+    DECLARE cur_LopHocPhan CURSOR FOR
+        SELECT
+            lhp.MaLHP,
+            mh.TenMH
+        FROM LopHocPhan AS lhp
+        JOIN MonHoc AS mh ON lhp.MaMH = mh.MaMH
+        WHERE lhp.MaHK = @MaHK;
+
+    -- Mo Cursor
+    OPEN cur_LopHocPhan;
+
+    -- Lay dong dau tien
+    FETCH NEXT FROM cur_LopHocPhan
+    INTO @MaLHP_Current, @TenMH_Current;
+
+    -- Vong lap duyet
+    WHILE (@@FETCH_STATUS = 0)
+    BEGIN
+        -- Dem si so thuc te
+        SELECT @SiSo_Current = COUNT(*)
+        FROM DangKyHocPhan
+        WHERE MaLHP = @MaLHP_Current;
+
+        -- In ket qua
+        PRINT N' - Lop ' + @MaLHP_Current +
+              N' (' + @TenMH_Current + N'): ' +
+              CAST(@SiSo_Current AS VARCHAR(10)) + N' sinh vien.';
+
+        -- Lay dong tiep theo
+        FETCH NEXT FROM cur_LopHocPhan
+        INTO @MaLHP_Current, @TenMH_Current;
+    END
+
+    PRINT N'--- Ket thuc bao cao ---';
+
+    -- Dong va huy Cursor
+    CLOSE cur_LopHocPhan;
+    DEALLOCATE cur_LopHocPhan;
+END
+GO
+\end{lstlisting}
+
+\textbf{2. Function tính điểm trung bình (fn\_TinhDiemTrungBinh)}
+
+Function tính điểm trung bình của sinh viên:
+
+\begin{lstlisting}[style=sql, caption={Function tính điểm trung bình}]
+CREATE OR ALTER FUNCTION fn_TinhDiemTrungBinh (@MaSV NVARCHAR(10))
+RETURNS FLOAT
+AS
+BEGIN
+    DECLARE @DTB FLOAT;
+    
+    SELECT @DTB = AVG(DiemTongKet)
+    FROM DangKyHocPhan
+    WHERE MaSV = @MaSV
+      AND DiemTongKet IS NOT NULL;
+    
+    RETURN @DTB;
+END;
+GO
+\end{lstlisting}
+
+\subsection{Tổng hợp các module xử lý theo chức năng}
+
+\subsubsection{Module quản lý tổ chức}
+\begin{table}[H]
+	\centering
+	\caption{Các thành phần xử lý module quản lý tổ chức}
+	\begin{tabular}{|l|l|l|}
+		\hline
+		\textbf{Loại}    & \textbf{Tên}             & \textbf{Chức năng}                   \\
+		\hline
+		Stored Procedure & sp\_ThemKhoa             & Thêm khoa mới với kiểm tra trùng lặp \\
+		\hline
+		Stored Procedure & sp\_DuyetTungHeDaoTao    & Duyệt và hiển thị các hệ đào tạo     \\
+		\hline
+		Function         & fn\_DemKhoaCoSoDienThoai & Đếm số khoa có số điện thoại         \\
+		\hline
+		Trigger          & trg\_KiemTraSoDienThoai  & Kiểm tra định dạng số điện thoại     \\
+		\hline
+		Transaction      & Cập nhật hệ đào tạo      & Cập nhật tên hệ đào tạo an toàn      \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Module quản lý giảng viên}
+\begin{table}[H]
+	\centering
+	\caption{Các thành phần xử lý module quản lý giảng viên}
+	\begin{tabular}{|l|l|l|}
+		\hline
+		\textbf{Loại}    & \textbf{Tên}                  & \textbf{Chức năng}             \\
+		\hline
+		Stored Procedure & SP\_CAPNHAT\_CHUCVU\_GV       & Cập nhật chức vụ giảng viên    \\
+		\hline
+		Stored Procedure & SP\_THANG\_CHUC\_TRUONG\_KHOA & Thăng chức trưởng khoa         \\
+		\hline
+		Function         & FN\_DEM\_GV\_THEO\_CHUCVU     & Đếm số giảng viên theo chức vụ \\
+		\hline
+		Trigger          & TR\_NGAN\_CHAN\_XOA\_CHUCVU   & Ngăn xóa chức vụ đang sử dụng  \\
+		\hline
+		Cursor           & CS\_THONG\_BAO\_NGHI\_HUU     & Thông báo giảng viên nghỉ hưu  \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Module quản lý sinh viên}
+\begin{table}[H]
+	\centering
+	\caption{Các thành phần xử lý module quản lý sinh viên}
+	\begin{tabular}{|l|l|l|}
+		\hline
+		\textbf{Loại}    & \textbf{Tên}                    & \textbf{Chức năng}                \\
+		\hline
+		Stored Procedure & sp\_LayDanhSachSV\_TheoLop      & Lấy danh sách sinh viên theo lớp  \\
+		\hline
+		Stored Procedure & sp\_DuyetSinhVien\_BangCursor   & Duyệt sinh viên bằng cursor       \\
+		\hline
+		Stored Procedure & sp\_ChuyenLopChoSinhVien        & Chuyển lớp cho sinh viên          \\
+		\hline
+		Function         & fn\_DemSoSinhVien\_TheoLop      & Đếm số sinh viên trong lớp        \\
+		\hline
+		Function         & fn\_LaySinhVien\_TheoKhoa       & Lấy danh sách sinh viên theo khoa \\
+		\hline
+		Trigger          & trg\_NganXoaLop\_KhiConSinhVien & Ngăn xóa lớp còn sinh viên        \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Module quản lý học phần}
+\begin{table}[H]
+	\centering
+	\caption{Các thành phần xử lý module quản lý học phần}
+	\begin{tabular}{|l|l|l|}
+		\hline
+		\textbf{Loại}    & \textbf{Tên}            & \textbf{Chức năng}                      \\
+		\hline
+		Stored Procedure & sp\_DangKyHocPhan       & Đăng ký học phần cho sinh viên          \\
+		\hline
+		Stored Procedure & sp\_DangKyMonHoc        & Đăng ký môn học với kiểm tra tiên quyết \\
+		\hline
+		Trigger          & trg\_TinhDiemTongKet    & Tự động tính điểm tổng kết              \\
+		\hline
+		Trigger          & trg\_KiemTraNgayDangKy  & Kiểm tra thời gian đăng ký hợp lệ       \\
+		\hline
+		Function         & fn\_TinhDiemTrungBinh   & Tính điểm trung bình sinh viên          \\
+		\hline
+		Cursor           & In điểm trung bình      & Duyệt và in điểm từng sinh viên         \\
+		\hline
+		Transaction      & Đăng ký + cập nhật điểm & Gộp đăng ký và cập nhật điểm            \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Module quản lý môn học}
+\begin{table}[H]
+	\centering
+	\caption{Các thành phần xử lý module quản lý môn học}
+	\begin{tabular}{|l|l|l|}
+		\hline
+		\textbf{Loại}    & \textbf{Tên}                & \textbf{Chức năng}                 \\
+		\hline
+		Stored Procedure & sp\_XoaMonHoc               & Xóa môn học với kiểm tra ràng buộc \\
+		\hline
+		Stored Procedure & sp\_ThemMonHoc              & Thêm môn học với transaction       \\
+		\hline
+		Stored Procedure & sp\_CapNhatMonHoc           & Cập nhật thông tin môn học         \\
+		\hline
+		Cursor           & sp\_BaoCaoHocKy             & Báo cáo sĩ số học kỳ               \\
+		\hline
+		Function         & fn\_LayDanhSachMonTienQuyet & Lấy danh sách môn tiên quyết       \\
+		\hline
+		Function         & fn\_KiemTraTienQuyet        & Kiểm tra điều kiện tiên quyết      \\
+		\hline
+		Trigger          & trg\_NganXoaHocKy           & Ngăn xóa học kỳ có lớp học phần    \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsection{Ví dụ dữ liệu thực tế và kết quả xử lý}
+
+\subsubsection{Dữ liệu mẫu hệ thống}
+Hệ thống hiện có dữ liệu mẫu bao gồm:
+\begin{itemize}
+	\item 4 hệ đào tạo: Chính quy (CQ), Chất lượng cao (CLC), Liên thông (LT), Tại chức (TC)
+	\item 5 khoa: CNTT, QTKD, Ngoại ngữ, Du lịch, Cơ khí
+	\item 7 giảng viên với các chức vụ khác nhau
+	\item 8 sinh viên phân bổ trong 5 lớp
+	\item 8 môn học với quan hệ tiên quyết
+	\item 4 học kỳ và 8 lớp học phần
+	\item 11 bản ghi đăng ký học phần với điểm số
+\end{itemize}
+
+\subsubsection{Ví dụ thực thi các chức năng}
+
+\textbf{1. Cập nhật chức vụ giảng viên:}
+\begin{lstlisting}[style=sql]
+-- Chuyen GV003 (Nguyen Hung Dung) thanh Truong khoa
+EXEC SP_CAPNHAT_CHUCVU_GV N'GV003', N'TK';
+-- Ket qua: Cap nhat chuc vu thanh cong cho Giang vien GV003
+\end{lstlisting}
+
+\textbf{2. Đếm số giảng viên theo chức vụ:}
+\begin{lstlisting}[style=sql]
+SELECT dbo.FN_DEM_GV_THEO_CHUCVU(N'GV') AS SoLuongGiangVien;
+-- Ket qua: 4 (co 4 giang vien giu chuc vu Giang vien)
+\end{lstlisting}
+
+\textbf{3. Đăng ký học phần cho sinh viên:}
+\begin{lstlisting}[style=sql]
+-- Sinh vien 2001130001 dang ky lop hoc phan LHP04 (Lap trinh Web)
+EXEC sp_DangKyHocPhan @MaSV = '2001130001', @MaLHP = 'LHP04';
+-- Ket qua: Dang ky thanh cong!
+\end{lstlisting}
+
+\textbf{4. Kiểm tra điều kiện tiên quyết:}
+\begin{lstlisting}[style=sql]
+-- Kiem tra SV 2001140001 du dieu kien hoc Lap trinh Web (LTW)
+-- (Da hoc ca CSDL va HDT la tien quyet cua LTW)
+SELECT dbo.fn_KiemTraTienQuyet('2001140001', 'LTW') AS DuDieuKien;
+-- Ket qua: 1 (Du dieu kien)
+
+-- Kiem tra SV 2001140002 (chi hoc CSDL, chua hoc HDT)
+SELECT dbo.fn_KiemTraTienQuyet('2001140002', 'LTW') AS DuDieuKien;
+-- Ket qua: 0 (Khong du dieu kien)
+\end{lstlisting}
+
+\textbf{5. Báo cáo sĩ số học kỳ:}
+\begin{lstlisting}[style=sql]
+EXEC sp_BaoCaoHocKy @MaHK = N'HK1-2425';
+-- Ket qua:
+-- --- BAO CAO SI SO HOC KY HK1-2425 ---
+-- - Lop LHP01 (Co so du lieu): 3 sinh vien.
+-- - Lop LHP02 (Huong doi tuong): 1 sinh vien.
+-- - Lop LHP03 (Marketing can ban): 2 sinh vien.
+-- - Lop LHP04 (Lap trinh Web): 1 sinh vien.
+-- - Lop LHP05 (Tieng Anh C1): 1 sinh vien.
+-- - Lop LHP06 (Quan tri lu hanh): 1 sinh vien.
+-- - Lop LHP07 (Ke toan can ban): 1 sinh vien.
+-- --- Ket thuc bao cao ---
+\end{lstlisting}
