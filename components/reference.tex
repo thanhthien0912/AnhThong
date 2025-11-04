@@ -4,14 +4,14 @@
 \addcontentsline{toc}{section}{KẾT LUẬN}
 
 \textbf{Tổng kết}\\
-Qua quá trình thực hiện đồ án "Hệ thống Quản lý Sinh viên", nhóm đã hoàn thành thành công các mục tiêu đặt ra:
+Qua quá trình thực hiện đồ án "Quản lý Sinh viên", nhóm đã hoàn thành thành công các mục tiêu đặt ra:
 
 \begin{enumerate}
 	\item \textbf{Xây dựng cơ sở dữ liệu hoàn chỉnh:} Thiết kế 10+ bảng dữ liệu với đầy đủ ràng buộc, khóa chính, khóa ngoại đảm bảo tính toàn vẹn dữ liệu
 
 	\item \textbf{Cài đặt các yêu cầu xử lý phức tạp:} Triển khai 5 Stored Procedures, 3 Functions, 3 Triggers, 2 Cursors và 2 Transactions để xử lý nghiệp vụ
 
-	\item \textbf{Quản trị hệ thống chuyên nghiệp:} Thiết lập hệ thống quản lý người dùng với 5 nhóm quyền, chiến lược backup/restore 3-2-1, bảo mật với TDE và Audit
+	\item \textbf{Quản trị hệ thống chuyên nghiệp:} Thiết lập hệ thống quản lý người dùng với 5 nhóm quyền, chiến lược backup/restore 3-2-1
 
 	\item \textbf{Phát triển ứng dụng web:} Xây dựng ứng dụng ASP.NET MVC với 5+ chức năng chính, giao diện responsive và tích hợp đầy đủ với database
 \end{enumerate}
@@ -66,7 +66,6 @@ Qua quá trình thực hiện đồ án "Hệ thống Quản lý Sinh viên", nh
 Script SQL đầy đủ để tạo database, bảng, stored procedures, functions, triggers có thể được tải từ:
 \begin{itemize}
 	\item File: \texttt{QLSV.sql} trong thư mục gốc dự án
-	\item Repository: https://github.com/[your-repo]/QuanLySinhVien
 \end{itemize}
 
 \textbf{Phụ lục B: Hướng dẫn cài đặt}\\
@@ -85,7 +84,7 @@ Script SQL đầy đủ để tạo database, bảng, stored procedures, functio
 	      \begin{itemize}
 		      \item Chạy script \texttt{QLSV.sql} trong SSMS
 		      \item Cấu hình login và users theo hướng dẫn Chương 3
-		      \item Thiết lập backup jobs
+		      \item Thiết lập backup
 	      \end{itemize}
 
 	\item \textbf{Deploy ứng dụng:}
@@ -101,30 +100,53 @@ Script SQL đầy đủ để tạo database, bảng, stored procedures, functio
 
 \begin{table}[H]
 	\centering
-	\begin{tabular}{|l|l|p{6cm}|}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{|l|l|X|}
 		\hline
-		\textbf{Loại} & \textbf{Tên}                 & \textbf{Mô tả}                            \\
+		\textbf{Loại} & \textbf{Tên}                        & \textbf{Mô tả}                                       \\
 		\hline
-		Procedure     & sp\_ThemSinhVien             & Thêm sinh viên mới với kiểm tra ràng buộc \\
-		Procedure     & sp\_DangKyHocPhan            & Đăng ký học phần cho sinh viên            \\
-		Procedure     & sp\_TinhDiemTongKet          & Tính điểm tổng kết và xếp loại            \\
-		Procedure     & sp\_ThongKeDiemTheoLop       & Thống kê điểm theo lớp                    \\
-		Procedure     & sp\_XetHocBong               & Xét học bổng tự động                      \\
+		Procedure     & SP\_CAPNHAT\_CHUCVU\_GV             & Cập nhật chức vụ mới cho giảng viên                  \\
+		Procedure     & sp\_ThemKhoa                        & Thêm khoa mới với kiểm tra trùng lặp                 \\
+		Procedure     & sp\_DangKyHocPhan                   & Đăng ký học phần cho sinh viên                       \\
+		Procedure     & sp\_LayDanhSachSV\_TheoLop          & Lấy danh sách sinh viên theo lớp                     \\
+		Procedure     & sp\_XoaMonHoc                       & Xóa môn học với kiểm tra ràng buộc                   \\
+		Procedure     & sp\_CapNhatMonHoc                   & Cập nhật thông tin môn học                           \\
+		Procedure     & sp\_DangKyMonHoc                    & Đăng ký môn học có kiểm tra tiên quyết               \\
+		Procedure     & sp\_KhoaTaiKhoan                    & Khoá/mở khoá tài khoản                               \\
 		\hline
-		Function      & fn\_TinhDiemTrungBinh        & Tính điểm trung bình tích lũy             \\
-		Function      & fn\_TongTinChiDaDangKy       & Tính tổng tín chỉ đã đăng ký              \\
-		Function      & fn\_KiemTraDieuKienTotNghiep & Kiểm tra điều kiện tốt nghiệp             \\
+		Function      & FN\_DEM\_GV\_THEO\_CHUCVU           & Đếm số lượng giảng viên theo chức vụ                 \\
+		Function      & fn\_DemKhoaCoSoDienThoai            & Đếm số lượng khoa có số điện thoại                   \\
+		Function      & fn\_TinhDiemTrungBinh               & Tính điểm trung bình tích lũy                        \\
+		Function      & fn\_DemSoSinhVien\_TheoLop          & Đếm số sinh viên trong một lớp                       \\
+		Function      & fn\_LaySinhVien\_TheoKhoa           & Lấy danh sách sinh viên theo khoa                    \\
+		Function      & fn\_LayDanhSachMonTienQuyet         & Lấy danh sách môn tiên quyết                         \\
+		Function      & fn\_KiemTraTienQuyet                & Kiểm tra sinh viên đủ điều kiện tiên quyết           \\
+		Function      & fn\_KiemTraTaiKhoan                 & Kiểm tra tài khoản hoạt động                         \\
 		\hline
-		Trigger       & trg\_CapNhatSiSoLop          & Tự động cập nhật sĩ số lớp                \\
-		Trigger       & trg\_KiemTraDiemHopLe        & Kiểm tra và tính điểm tự động             \\
-		Trigger       & trg\_LogThayDoiSinhVien      & Ghi log thay đổi thông tin                \\
+		Cursor        & CS\_THONG\_BAO\_NGHI\_HUU           & Duyệt giảng viên và thông báo nghỉ hưu              \\
+		Cursor        & sp\_DuyetTungHeDaoTao               & Duyệt và hiển thị từng hệ đào tạo                    \\
+		Cursor        & sp\_DuyetSinhVien\_BangCursor       & Duyệt sinh viên theo lớp                             \\
+		Cursor        & sp\_BaoCaoHocKy                     & Báo cáo sĩ số từng lớp học phần theo học kỳ          \\
 		\hline
-	\end{tabular}
+		Transaction   & SP\_THANG\_CHUC\_TRUONG\_KHOA       & Thăng chức Trưởng khoa với rollback                  \\
+		Transaction   & sp\_ThemMonHoc                      & Thêm môn học với kiểm tra tính toàn vẹn              \\
+		Transaction   & sp\_ChuyenLopChoSinhVien            & Chuyển lớp cho sinh viên an toàn                     \\
+		Transaction   & TX\_CapNhatHeDaoTao                 & Cập nhật hệ đào tạo với xử lý lỗi                    \\
+		Transaction   & TX\_DangKyVaCapNhatDiem             & Đăng ký và cập nhật điểm trong một giao dịch         \\
+		\hline
+		Trigger       & TR\_NGAN\_CHAN\_XOA\_CHUCVU         & Ngăn xóa chức vụ đang được sử dụng                   \\
+		Trigger       & trg\_KiemTraSoDienThoai             & Kiểm tra định dạng số điện thoại                     \\
+		Trigger       & trg\_TinhDiemTongKet                & Tự động tính điểm tổng kết                           \\
+		Trigger       & trg\_NganXoaLop\_KhiConSinhVien     & Ngăn xóa lớp còn sinh viên                           \\
+		Trigger       & trg\_NganXoaHocKy                   & Ngăn xóa học kỳ còn lớp học phần                     \\
+		Trigger       & trg\_KiemTraNgayDangKy              & Kiểm tra thời hạn đăng ký học phần                   \\
+		\hline
+	\end{tabularx}
 \end{table}
 
 \textbf{Phụ lục D: Mã nguồn quan trọng}\\
 Mã nguồn đầy đủ của dự án có thể được truy cập tại:
 \begin{itemize}
-	\item Thư mục: \texttt{C:\textbackslash Users\textbackslash thanh\textbackslash Downloads\textbackslash BaoCao\textbackslash QLSV\textbackslash QuanLySinhVien}
+	\item Thư mục: \texttt{\textbackslash QLSV\textbackslash QuanLySinhVien}
 	\item Cấu trúc thư mục đã được mô tả chi tiết trong Chương 4
 \end{itemize}

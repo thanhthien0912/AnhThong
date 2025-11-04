@@ -101,17 +101,17 @@ public class DatabaseHelper
 \begin{table}[H]
 	\centering
 	\caption{Phân công chức năng cho các thành viên}
-	\resizebox{\textwidth}{!}{
-		\begin{tabular}{|l|l|p{7cm}|}
-			\hline
-			\textbf{Thành viên}    & \textbf{Chức năng}      & \textbf{Stored Proc/Function/Trigger sử dụng}                                                                                                                                     \\ \hline
-			Võ Anh Khoa            & Quản lý Giảng viên      & SP\_CAPNHAT\_CHUCVU\_GV, FN\_DEM\_GV\_THEO\_CHUCVU, TR\_NGAN\_CHAN\_XOA\_CHUCVU, SP\_THANG\_CHUC\_TRUONG\_KHOA                                                                    \\ \hline
-			Nguyễn Gia Bảo         & Quản lý Khoa            & sp\_ThemKhoa, fn\_DemKhoaCoSoDienThoai, trg\_KiemTraSoDienThoai, sp\_DuyetTungHeDaoTao                                                                                            \\ \hline
-			Nguyễn Viết An Bình    & Đăng ký và Quản lý điểm & sp\_DangKyHocPhan, trg\_TinhDiemTongKet, fn\_TinhDiemTrungBinh, Transaction đăng ký                                                                                               \\ \hline
-			Mã Nhật Phong          & Quản lý Sinh viên       & sp\_LayDanhSachSV\_TheoLop, fn\_DemSoSinhVien\_TheoLop, trg\_NganXoaLop\_KhiConSinhVien, sp\_ChuyenLopChoSinhVien                                                                 \\ \hline
-			Nguyễn Hữu Hoàng Thông & Quản lý Môn học         & sp\_ThemMonHoc, sp\_XoaMonHoc, sp\_CapNhatMonHoc, fn\_LayDanhSachMonTienQuyet, trg\_NganXoaHocKy, sp\_BaoCaoHocKy, fn\_KiemTraTienQuyet, sp\_DangKyMonHoc, trg\_KiemTraNgayDangKy \\ \hline
-		\end{tabular}
-	}
+	\footnotesize
+	\renewcommand{\tabularxcolumn}[1]{m{#1}}
+	\begin{tabularx}{\textwidth}{|m{3.5cm}|m{4.5cm}|>{\raggedright\arraybackslash}X|}
+		\hline
+		\textbf{Thành viên}    & \textbf{Chức năng}                                 & \textbf{Stored Proc/Function/Trigger sử dụng}                                                                                                                                     \\ \hline
+		Võ Anh Khoa            & Quản lý Chức vụ, Giảng viên                        & SP\_CAPNHAT\_CHUCVU\_GV, FN\_DEM\_GV\_THEO\_CHUCVU, TR\_NGAN\_CHAN\_XOA\_CHUCVU, SP\_THANG\_CHUC\_TRUONG\_KHOA                                                                    \\ \hline
+		Nguyễn Gia Bảo         & Quản lý Khoa, Hệ đào tạo                           & sp\_ThemKhoa, fn\_DemKhoaCoSoDienThoai, trg\_KiemTraSoDienThoai, sp\_DuyetTungHeDaoTao                                                                                            \\ \hline
+		Nguyễn Viết An Bình    & Quản lý LHP, Đăng ký LHP                           & sp\_DangKyHocPhan, trg\_TinhDiemTongKet, fn\_TinhDiemTrungBinh, Transaction đăng ký                                                                                               \\ \hline
+		Mã Nhật Phong          & Quản lý Lớp, Sinh viên                             & sp\_LayDanhSachSV\_TheoLop, fn\_DemSoSinhVien\_TheoLop, trg\_NganXoaLop\_KhiConSinhVien, sp\_ChuyenLopChoSinhVien                                                                 \\ \hline
+		Nguyễn Hửu Hoàng Thông & Quản lý Môn học, Môn học tiên quyết, Học kỳ        & sp\_ThemMonHoc, sp\_XoaMonHoc, sp\_CapNhatMonHoc, fn\_LayDanhSachMonTienQuyet, trg\_NganXoaHocKy, sp\_BaoCaoHocKy, fn\_KiemTraTienQuyet, sp\_DangKyMonHoc, trg\_KiemTraNgayDangKy \\ \hline
+	\end{tabularx}
 \end{table}
 
 
@@ -751,17 +751,17 @@ public class MonHocController : Controller
 	\label{fig:bao_cao_hoc_ky}
 \end{figure}
 
-\subsection{Testing và Demo}
+\subsection{Demo}
 
-\textbf{Kiểm thử chức năng:}
-\begin{itemize}
-	\item Test thêm sinh viên với dữ liệu hợp lệ và không hợp lệ
-	\item Test đăng ký học phần với các trường hợp: lớp đầy, vượt tín chỉ
-	\item Test nhập điểm và kiểm tra trigger tự động tính điểm
-	\item Test xét học bổng với các điều kiện khác nhau
-	\item Test báo cáo thống kê với dữ liệu lớn
-\end{itemize}
+% \textbf{Kiểm thử chức năng:}
+% \begin{itemize}
+% 	\item Test thêm sinh viên với dữ liệu hợp lệ và không hợp lệ
+% 	\item Test đăng ký học phần với các trường hợp: lớp đầy, vượt tín chỉ
+% 	\item Test nhập điểm và kiểm tra trigger tự động tính điểm
+% 	\item Test xét học bổng với các điều kiện khác nhau
+% 	\item Test báo cáo thống kê với dữ liệu lớn
+% \end{itemize}
 
 
-\textbf{Video demo:}\\
+% \textbf{Video demo:}\\
 Link demo ứng dụng: \url{https://drive.google.com/drive/folders/1PCYUt3RIsg0WdZMrs4_eikNIVjb12PCt?usp=sharing}

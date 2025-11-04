@@ -60,6 +60,6 @@
 \contentsline {subsection}{\numberline {4.7}Chức năng 3: Đăng ký và Quản lý điểm}{52}{subsection.4.7}%
 \contentsline {subsection}{\numberline {4.8}Chức năng 4: Quản lý Sinh viên}{57}{subsection.4.8}%
 \contentsline {subsection}{\numberline {4.9}Chức năng 5: Quản lý Môn học}{61}{subsection.4.9}%
-\contentsline {subsection}{\numberline {4.10}Testing và Demo}{66}{subsection.4.10}%
+\contentsline {subsection}{\numberline {4.10}Demo}{66}{subsection.4.10}%
 \contentsline {section}{KẾT LUẬN}{67}{section*.32}%
 \contentsline {section}{PHỤ LỤC}{69}{section*.33}%
